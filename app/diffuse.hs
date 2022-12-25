@@ -11,23 +11,21 @@ module Main (main) where
 import Control.Applicative ((<**>))
 import Control.Arrow ((<<<))
 import Control.Lens
-import Control.Monad (guard)
 import Data.Avg
+import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
-import Data.Foldable (asum)
 import Data.Generics.Labels ()
 import Data.Image.Format.PPM
 import Data.Image.Types
-import Data.List (inits)
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..), (.+^), (.-.))
 import Linear.Direction
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
-import RIO (ReaderT (..))
 import RIO.FilePath ((</>))
 import RayTracing.Camera
 import RayTracing.Object.Classes
@@ -104,12 +102,18 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
 
 parseDiffusion :: String -> Maybe Diffusion
 parseDiffusion =
-  runReaderT $
-    asum
-      [ ReaderT $ \txt -> do method <$ guard (map C.toLower txt == label)
-      | method <- [Lambert, Hemisphere]
-      , label <- drop 1 . inits . map C.toLower $ show method
-      ]
+  flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
+  where
+    go (Just m) _ = Just m
+    go Nothing sub
+      | Trie.null sub = Nothing
+      | [a] <- Trie.elems sub = Just a
+      | otherwise = Nothing
+    dic =
+      Trie.fromList
+        [ (BS.pack $ map C.toLower $ show mtd, mtd)
+        | mtd <- [Lambert, Hemisphere]
+        ]
 
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig

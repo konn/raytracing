@@ -44,6 +44,7 @@ library
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -73,6 +74,7 @@ executable blue-to-white
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -103,6 +105,7 @@ executable diffuse
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -133,6 +136,7 @@ executable gradient-with-simple-sphere
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -163,6 +167,7 @@ executable spheres
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -193,6 +198,7 @@ executable spheres-antialias
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
@@ -224,6 +230,7 @@ test-suite raytracing-test
       adjunctions
     , base >=4.7 && <5
     , bytestring
+    , bytestring-trie
     , distributive
     , fmlist
     , generic-lens
