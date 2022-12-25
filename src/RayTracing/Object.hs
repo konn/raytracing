@@ -11,6 +11,8 @@ module RayTracing.Object (
   SceneOf (..),
   Scene,
   rayColour,
+  module RayTracing.Object.Material,
+  module RayTracing.Object.Shape,
 ) where
 
 import Control.Lens ((%~))

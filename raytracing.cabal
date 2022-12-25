@@ -53,6 +53,7 @@ library
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -83,6 +84,7 @@ executable blue-to-white
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -114,6 +116,7 @@ executable diffuse
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -145,6 +148,39 @@ executable gradient-with-simple-sphere
     , lens
     , linear
     , massiv
+    , massiv-io
+    , optparse-applicative
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , semigroups
+    , streaming
+    , streaming-bytestring
+    , vector
+    , vector-th-unbox
+  default-language: Haskell2010
+
+executable metal-spheres
+  main-is: metal-spheres.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      adjunctions
+    , base >=4.7 && <5
+    , bytestring
+    , bytestring-trie
+    , distributive
+    , fmlist
+    , generic-lens
+    , lens
+    , linear
+    , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -176,6 +212,7 @@ executable spheres
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -207,6 +244,7 @@ executable spheres-antialias
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random
@@ -239,6 +277,7 @@ test-suite raytracing-test
     , lens
     , linear
     , massiv
+    , massiv-io
     , optparse-applicative
     , profunctors
     , random

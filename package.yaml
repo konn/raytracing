@@ -30,6 +30,7 @@ dependencies:
 - lens
 - linear
 - massiv
+- massiv-io
 - optparse-applicative
 - profunctors
 - random
@@ -102,6 +103,17 @@ executables:
 
   diffuse:
     main:                diffuse.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -O2
+    - -with-rtsopts=-N
+    dependencies:
+    - raytracing
+
+  metal-spheres:
+    main:                metal-spheres.hs
     source-dirs:         app
     ghc-options:
     - -threaded

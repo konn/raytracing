@@ -13,14 +13,11 @@ import Control.Arrow ((<<<))
 import Control.Lens
 import Control.Monad (guard)
 import Data.Avg
-import Data.ByteString.Char8 qualified as BS
-import Data.Char qualified as C
 import Data.Generics.Labels ()
 import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
-import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
@@ -44,8 +41,7 @@ data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
 
 data Options = Options
-  { diffusion :: !Diffusion
-  , cutoff :: !Int
+  { cutoff :: !Int
   , samplesPerPixel :: !Int
   , imageWidth :: !Int
   , epsilon :: !Double
@@ -57,14 +53,6 @@ cmdP :: Opt.ParserInfo Options
 cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusion"
   where
     p = do
-      diffusion <-
-        Opt.option (Opt.maybeReader parseDiffusion) $
-          Opt.long "diffusion"
-            <> Opt.short 'd'
-            <> Opt.metavar "METHOD"
-            <> Opt.value Lambert
-            <> Opt.help "Diffusion method (lambert, or hemisphere)"
-            <> Opt.showDefault
       cutoff <-
         fromIntegral @Natural
           <$> Opt.option
@@ -112,23 +100,8 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.metavar "PATH"
             <> Opt.help "Output path"
             <> Opt.showDefault
-            <> Opt.value ("workspace" </> "diffuse.ppm")
+            <> Opt.value ("workspace" </> "metal-spheres.ppm")
       pure Options {..}
-
-parseDiffusion :: String -> Maybe Diffusion
-parseDiffusion =
-  flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
-  where
-    go (Just m) _ = Just m
-    go Nothing sub
-      | Trie.null sub = Nothing
-      | [a] <- Trie.elems sub = Just a
-      | otherwise = Nothing
-    dic =
-      Trie.fromList
-        [ (BS.pack $ map C.toLower $ show mtd, mtd)
-        | mtd <- [Lambert, Hemisphere]
-        ]
 
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig
@@ -161,26 +134,28 @@ mkImage g0 opts@Options {..} =
                             Avg 1 <$> rayColour epsilon scene g cutoff r
                       )
 
-mkScene :: Options -> SceneOf Sphere SomeMaterial
-mkScene Options {..} =
-  let diff =
-        case diffusion of
-          Lambert -> MkSomeMaterial $ Lambertian 0.5
-          Hemisphere -> MkSomeMaterial $ Hemispheric 0.5
+mkScene :: Options -> Scene
+mkScene Options {} =
+  let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
+      groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
+      centerMaterial = Lambertian $ MkAttn 0.7 0.3 0.3
+      center = Sphere {center = p3 (0, 0, -1), radius = 0.5}
+      leftMaterial = Metal $ MkAttn 0.8 0.8 0.8
+      leftS = Sphere {center = p3 (-1, 0, -1), radius = 0.5}
+      rightMaterial = Metal $ MkAttn 0.8 0.6 0.2
+      rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
    in Scene
-        { objects = map (`Object` diff) world
+        { objects =
+            [ MkSomeObject ground groundMaterial
+            , MkSomeObject center centerMaterial
+            , MkSomeObject leftS leftMaterial
+            , MkSomeObject rightS rightMaterial
+            ]
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)
              in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
         }
 
-world :: [Sphere]
-world = [sphere1, sphere2]
-
 p3 :: (a, a, a) -> Point V3 a
 p3 (x, y, z) = P $ V3 x y z
-
-sphere1, sphere2 :: Sphere
-sphere1 = Sphere {center = p3 (0, 0, -1), radius = 0.5}
-sphere2 = Sphere {center = p3 (0, -100.5, -1), radius = 100}
