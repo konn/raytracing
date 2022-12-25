@@ -13,5 +13,5 @@ sampling θ ∈ [0, π], φ ∈ [-π, π].
 randomPointInUnitSphere :: RandomGen g => g -> (Dir V3 Double, g)
 randomPointInUnitSphere g = runSTGen g $ \mg -> do
   theta <- (pi *) <$> randomRM (0, 1.0) mg
-  phi <- (pi *) <$> randomRM (-0.99999, 1.0) mg
+  phi <- (pi *) <$> randomRM (-1.0, 1.0) mg
   pure $ unsafeDir $ V3 (sin theta * cos phi) (sin theta * sin phi) (cos theta)
