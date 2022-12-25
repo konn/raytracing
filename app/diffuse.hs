@@ -83,13 +83,16 @@ mkImage g0 =
                         Avg 1 <$> colorRayDiffuse world g 100 r
                   )
 
+epsilon :: Double
+epsilon = 0.01
+
 colorRayDiffuse :: (RandomGenM g r m, Hittable obj) => obj -> g -> Int -> Ray -> m (Pixel Double)
 colorRayDiffuse obj g = go
   where
     {-# INLINE go #-}
     go !depth r@Ray {..}
       | depth <= 0 = pure $ Pixel 0 0 0
-      | Just Hit {..} <- hitWithin (Just 0) Nothing r obj = do
+      | Just Hit {..} <- hitWithin (Just epsilon) Nothing r obj = do
           dev <- applyRandomGenM randomPointInUnitSphere g
           let n = unDir normal
               target = coord .+^ n .+^ unP dev
