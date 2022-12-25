@@ -11,7 +11,7 @@ import Linear
 import Linear.Affine (Affine (..), Point (..))
 import Linear.Direction
 import RIO.FilePath ((</>))
-import RayTracing.Object.Classes
+import RayTracing.Object.Shape
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 
@@ -33,7 +33,7 @@ anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->
 
 colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
-  | Just Hit {..} <- hitWithin (Just 0) Nothing r obj =
+  | Just Hit {..} <- hitWithin obj (Just 0) Nothing r  =
       let n = unDir normal
        in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =

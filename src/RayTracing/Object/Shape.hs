@@ -3,19 +3,21 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module RayTracing.Object.Classes (
+module RayTracing.Object.Shape (
   Hittable (..),
   HitRecord (..),
   mkHitWithOutwardNormal,
   inRange,
+  withNearestHit,
   FoldHittables (..),
   SomeHittable (..),
+  withNearestHitWithin,
 ) where
 
 import Control.Arrow ((>>>))
 import Data.FMList (FMList)
 import Data.Maybe (isJust)
-import Data.Semigroup (Arg (..), Min (..))
+import Data.Semigroup (Any (..), Arg (..), Min (..))
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
@@ -47,15 +49,15 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime =
    in Hit {..}
 
 class Hittable obj where
-  hits :: Ray -> obj -> Maybe HitRecord
-  hits = hitWithin Nothing Nothing
-  doesHit :: Ray -> obj -> Bool
+  hits :: obj -> Ray -> Maybe HitRecord
+  hits obj = hitWithin obj Nothing Nothing
+  doesHit :: obj -> Ray -> Bool
   {-# INLINE doesHit #-}
   doesHit = fmap (not . null) . hits
 
-  hitWithin :: Maybe Double -> Maybe Double -> Ray -> obj -> Maybe HitRecord
+  hitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Maybe HitRecord
 
-  doesHitWithin :: Maybe Double -> Maybe Double -> Ray -> obj -> Bool
+  doesHitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Bool
   {-# INLINE doesHitWithin #-}
   doesHitWithin = fmap (fmap (fmap isJust)) . hitWithin
 
@@ -80,27 +82,49 @@ data SomeHittable where
   MkSomeHittable :: Hittable obj => obj -> SomeHittable
 
 instance Hittable SomeHittable where
-  hits ray = \case (MkSomeHittable obj) -> hits ray obj
+  hits = \case (MkSomeHittable obj) -> hits obj
   {-# INLINE hits #-}
-  doesHit ray = \case (MkSomeHittable obj) -> doesHit ray obj
+  doesHit = \case (MkSomeHittable obj) -> doesHit obj
   {-# INLINE doesHit #-}
-  hitWithin tmin tmax ray =
-    \case (MkSomeHittable obj) -> hitWithin tmin tmax ray obj
+  hitWithin =
+    \case (MkSomeHittable obj) -> hitWithin obj
   {-# INLINE hitWithin #-}
-  doesHitWithin mmin mmax ray =
-    \case (MkSomeHittable obj) -> doesHitWithin mmin mmax ray obj
+  doesHitWithin =
+    \case (MkSomeHittable obj) -> doesHitWithin obj
   {-# INLINE doesHitWithin #-}
 
+withNearestHit ::
+  (Foldable t, Hittable obj) =>
+  t obj ->
+  Ray ->
+  Maybe (HitRecord, obj)
+withNearestHit =
+  fmap (fmap (getMin >>> \(Arg _ b) -> b))
+    . foldMap
+      ( \obj ->
+          fmap (Min . (Arg <$> hitTime <*> (,obj))) . hits obj
+      )
+
+withNearestHitWithin ::
+  (Foldable t, Hittable obj) =>
+  t obj ->
+  Maybe Double ->
+  Maybe Double ->
+  Ray ->
+  Maybe (HitRecord, obj)
+withNearestHitWithin =
+  fmap (fmap $ fmap $ fmap (getMin >>> \(Arg _ b) -> b))
+    . foldMap
+      ( \obj ->
+          fmap (fmap $ fmap $ Min . (Arg <$> hitTime <*> (,obj))) . hitWithin obj
+      )
+
 instance (Foldable t, Hittable obj) => Hittable (FoldHittables t obj) where
-  hits ray =
-    fmap (getMin >>> (\(Arg _ b) -> b))
-      . foldMap (fmap (Min . (Arg <$> hitTime <*> id)) . hits ray)
+  hits = fmap (fmap fst) . withNearestHit
   {-# INLINE hits #-}
-  doesHit = any . doesHit
+  doesHit = fmap getAny . foldMap (fmap Any . doesHit)
   {-# INLINE doesHit #-}
-  hitWithin tmin tmax ray =
-    fmap (getMin >>> (\(Arg _ b) -> b))
-      . foldMap (fmap (Min . (Arg <$> hitTime <*> id)) . hitWithin tmin tmax ray)
+  hitWithin = fmap (fmap $ fmap $ fmap fst) . withNearestHitWithin
   {-# INLINE hitWithin #-}
-  doesHitWithin = fmap (fmap any) . doesHitWithin
+  doesHitWithin = fmap (fmap $ fmap getAny) . foldMap (fmap (fmap $ fmap Any) . doesHitWithin)
   {-# INLINE doesHitWithin #-}

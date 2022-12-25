@@ -15,6 +15,7 @@ module Data.Image.Types (
   correctGamma,
 ) where
 
+import Control.Applicative (liftA2)
 import Control.Arrow ((>>>))
 import Data.Distributive (Distributive (..))
 import Data.Functor.Rep
@@ -31,6 +32,30 @@ data Pixel f = Pixel {red, green, blue :: !f}
   deriving (Show, Eq, Ord, Generic, Foldable, Functor, Traversable, Generic1)
   deriving anyclass (Representable, Additive, Metric)
   deriving (Applicative, Monad) via Co Pixel
+
+instance Num f => Num (Pixel f) where
+  (+) = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-) = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*) = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs = fmap abs
+  {-# INLINE abs #-}
+  signum = fmap signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+  negate = fmap negate
+  {-# INLINE negate #-}
+
+instance Fractional a => Fractional (Pixel a) where
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+  (/) = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip = fmap recip
+  {-# INLINE recip #-}
 
 instance Distributive Pixel where
   distribute = distributeRep

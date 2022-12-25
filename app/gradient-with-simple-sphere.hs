@@ -10,7 +10,7 @@ import Data.Massiv.Array (Ix2 (..), Sz (..))
 import Linear
 import Linear.Affine (Affine (..), Point (..))
 import RIO.FilePath ((</>))
-import RayTracing.Object.Classes
+import RayTracing.Object.Shape
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 
@@ -32,7 +32,7 @@ anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->
 
 colorRay :: RayColor
 colorRay r@Ray {..}
-  | Just Hit {..} <- hits r aSphere =
+  | Just Hit {..} <- hits aSphere r  =
       let n = normalize $ rayAt hitTime r .-. center aSphere
        in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =

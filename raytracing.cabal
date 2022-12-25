@@ -30,8 +30,10 @@ library
       Data.Image.Types
       Linear.Direction
       RayTracing.Camera
-      RayTracing.Object.Classes
+      RayTracing.Object
       RayTracing.Object.List
+      RayTracing.Object.Material
+      RayTracing.Object.Shape
       RayTracing.Object.Sphere
       RayTracing.Ray
       System.Random.Utils

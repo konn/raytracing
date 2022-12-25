@@ -1,7 +1,7 @@
 {-# LANGUAGE GHC2021 #-}
 
 -- | Directional (unit) vectors, as provided in diagrams-lib.
-module Linear.Direction (Dir, dir, unDir, unsafeDir, invert) where
+module Linear.Direction (Dir, dir, unDir, unsafeDir, invert, reflectAround) where
 
 import GHC.Generics (Generic, Generic1)
 import Linear
@@ -26,3 +26,6 @@ unsafeDir = Dir
 invert :: (Functor v, Num a) => Dir v a -> Dir v a
 {-# INLINE invert #-}
 invert = Dir . fmap negate . unDir
+
+reflectAround :: Num a => Dir V3 a -> V3 a -> V3 a
+reflectAround (Dir n) v = v ^-^ 2 * n `dot` v *^ n

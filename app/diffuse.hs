@@ -28,7 +28,7 @@ import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RayTracing.Camera
-import RayTracing.Object.Classes
+import RayTracing.Object.Shape
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
@@ -156,7 +156,7 @@ colorRayDiffuse Options {..} obj g = go
     {-# INLINE go #-}
     go !depth r@Ray {..}
       | depth <= 0 = pure $ Pixel 0 0 0
-      | Just Hit {..} <- hitWithin (Just epsilon) Nothing r obj = do
+      | Just Hit {..} <- hitWithin obj (Just epsilon) Nothing r = do
           let n = unDir normal
           dev <- applyRandomGenM (randomDiffusion diffusion normal) g
           let target = coord .+^ n .+^ unDir dev

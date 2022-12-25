@@ -16,7 +16,7 @@ import Data.FMList (FMList)
 import Data.FMList qualified as FML
 import GHC.Exts (IsList (..))
 import GHC.Generics (Generic)
-import RayTracing.Object.Classes
+import RayTracing.Object.Shape
 
 newtype SomeHittables = SomeHittables {objects :: FMList SomeHittable}
   deriving (Generic)

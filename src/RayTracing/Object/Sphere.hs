@@ -9,7 +9,7 @@ import GHC.Generics
 import Linear
 import Linear.Affine
 import Linear.Direction
-import RayTracing.Object.Classes
+import RayTracing.Object.Shape
 import RayTracing.Ray
 
 data Sphere = Sphere
@@ -19,7 +19,7 @@ data Sphere = Sphere
   deriving (Show, Eq, Ord, Generic)
 
 instance Hittable Sphere where
-  hitWithin mtmin mtmax r@Ray {..} Sphere {..} = do
+  hitWithin Sphere {..} mtmin mtmax r@Ray {..} = do
     let !oc = rayOrigin .-. center
         !a = quadrance rayDirection
         !b = oc `dot` rayDirection
