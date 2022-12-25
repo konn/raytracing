@@ -11,6 +11,7 @@ module Main (main) where
 import Control.Applicative ((<**>))
 import Control.Arrow ((<<<))
 import Control.Lens
+import Control.Monad (guard)
 import Data.Avg
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
@@ -22,18 +23,17 @@ import Data.Massiv.Array qualified as M
 import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
-import Linear.Affine (Point (..), (.+^), (.-.))
-import Linear.Direction
+import Linear.Affine (Point (..))
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RayTracing.Camera
-import RayTracing.Object.Shape
+import RayTracing.Object
+import RayTracing.Object.Material (Hemispheric (..), Lambertian (Lambertian), SomeMaterial (..))
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
-import System.Random.Stateful (RandomGenM (..), randomRM, runSTGen)
-import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
+import System.Random.Stateful (randomRM, runSTGen)
 
 main :: IO ()
 main = do
@@ -49,6 +49,7 @@ data Options = Options
   , cutoff :: !Int
   , samplesPerPixel :: !Int
   , imageWidth :: !Int
+  , epsilon :: !Double
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -97,7 +98,13 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
                 <> Opt.showDefault
                 <> Opt.help "Sample size for randomised antialiasing"
             )
-
+      epsilon <-
+        Opt.option (Opt.auto >>= \d -> d <$ guard (d >= 0)) $
+          Opt.long "epsilon"
+            <> Opt.short 'E'
+            <> Opt.value 0.001
+            <> Opt.showDefault
+            <> Opt.help "The threshold to regard as zero"
       pure Options {..}
 
 parseDiffusion :: String -> Maybe Diffusion
@@ -122,9 +129,8 @@ mkImage :: RandomGen g => g -> Options -> WordImage
 mkImage g0 opts@Options {..} =
   let imageHeight =
         floor $
-          fromIntegral imageWidth
-            / defaultCameraConfig
-            ^. #aspectRatio
+          fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
+      scene = mkScene opts
    in fromDoubleImage $
         M.computeP $
           correctGamma $
@@ -144,36 +150,22 @@ mkImage g0 opts@Options {..} =
                             let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
                                 !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
                                 !r = getRay aCamera $ P $ V2 u v
-                            Avg 1 <$> colorRayDiffuse opts world g cutoff r
+                            Avg 1 <$> rayColour epsilon scene g cutoff r
                       )
 
-epsilon :: Double
-epsilon = 0.01
-
-colorRayDiffuse :: (RandomGenM g r m, Hittable obj) => Options -> obj -> g -> Int -> Ray -> m (Pixel Double)
-colorRayDiffuse Options {..} obj g = go
-  where
-    {-# INLINE go #-}
-    go !depth r@Ray {..}
-      | depth <= 0 = pure $ Pixel 0 0 0
-      | Just Hit {..} <- hitWithin obj (Just epsilon) Nothing r = do
-          let n = unDir normal
-          dev <- applyRandomGenM (randomDiffusion diffusion normal) g
-          let target = coord .+^ n .+^ unDir dev
-              reflected =
-                Ray
-                  { rayOrigin = coord
-                  , rayDirection = target .-. coord
-                  }
-           in (0.5 *^) <$> go (depth - 1) reflected
-      | otherwise = do
-          let !unitDirection = normalize rayDirection
-              !t = 0.5 * (unitDirection ^. _y + 1.0)
-          pure $ lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
-
-randomDiffusion :: RandomGen g => Diffusion -> Dir V3 Double -> g -> (Dir V3 Double, g)
-randomDiffusion Lambert = const randomPointOnUnitSphere
-randomDiffusion Hemisphere = randomPointOnUnitHemisphere
+mkScene :: Options -> SceneOf Sphere SomeMaterial
+mkScene Options {..} =
+  let diff =
+        case diffusion of
+          Lambert -> MkSomeMaterial $ Lambertian 0.5
+          Hemisphere -> MkSomeMaterial $ Hemispheric 0.5
+   in Scene
+        { objects = map (`Object` diff) world
+        , background = \Ray {..} ->
+            let !unitDirection = normalize rayDirection
+                !t = 0.5 * (unitDirection ^. _y + 1.0)
+             in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+        }
 
 world :: [Sphere]
 world = [sphere1, sphere2]

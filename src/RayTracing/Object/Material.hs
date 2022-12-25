@@ -14,7 +14,7 @@ module RayTracing.Object.Material (
   (.*),
   Material (..),
   Lambertian (..),
-  Hemisphere (..),
+  Hemispheric (..),
   Metal (..),
   SomeMaterial (..),
 ) where
@@ -37,7 +37,7 @@ import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere
 
 newtype Attenuation a = Attenuation {getAttenuation :: Pixel a}
   deriving (Show, Eq, Ord, Generic)
-  deriving newtype (Num)
+  deriving newtype (Num, Fractional)
 
 pattern MkAttn :: a -> a -> a -> Attenuation a
 pattern MkAttn {redRatio, greenRatio, blueRatio} =
@@ -83,12 +83,12 @@ instance Material Lambertian where
             }
     pure $ Just (albedo, scattered)
 
-newtype Hemisphere = Hemisphere {albedo :: Attenuation Double}
+newtype Hemispheric = Hemispheric {albedo :: Attenuation Double}
   deriving (Show, Eq, Ord, Generic)
 
-instance Material Hemisphere where
+instance Material Hemispheric where
   {-# INLINE scatter #-}
-  scatter Hemisphere {..} Hit {..} _ g = do
+  scatter Hemispheric {..} Hit {..} _ g = do
     d <- applyRandomGenM (randomPointOnUnitHemisphere normal) g
     let sDir = unDir normal ^+^ unDir d
         scattered =
