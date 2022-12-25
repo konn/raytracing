@@ -1,4 +1,6 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -6,6 +8,7 @@
 
 module Main (main) where
 
+import Control.Arrow ((<<<))
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.Image.Format.PPM
@@ -70,12 +73,13 @@ mkImage g0 =
                 (pure . split)
                 M.Par
                 (Sz3 imageHeight imageWidth samplesPerPixel)
-                ( \_ (M.Ix3 j i _) g' -> pure $ runSTGen g' $ \g -> do
-                    !c <- randomRM (0, 1.0) g
-                    let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
-                        !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
-                        !r = getRay aCamera $ P $ V2 u v
-                    Avg 1 <$> colorRayDiffuse world g 50 r
+                ( \_ (M.Ix3 j i _) ->
+                    pure <<< flip runSTGen \g -> do
+                      !c <- randomRM (0, 1.0) g
+                      let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
+                          !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
+                          !r = getRay aCamera $ P $ V2 u v
+                      Avg 1 <$> colorRayDiffuse world g 100 r
                 )
 
 colorRayDiffuse :: (RandomGenM g r m, Hittable obj) => obj -> g -> Int -> Ray -> m (Pixel Double)
@@ -110,5 +114,5 @@ sphere1 = Sphere {center = p3 (0, 0, -1), radius = 0.5}
 sphere2 = Sphere {center = p3 (0, -100.5, -1), radius = 100}
 
 imageWidth, imageHeight :: Int
-imageWidth = 400
+imageWidth = 800
 imageHeight = floor $ fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
