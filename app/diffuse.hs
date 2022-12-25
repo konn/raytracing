@@ -64,7 +64,7 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.short 'd'
             <> Opt.metavar "METHOD"
             <> Opt.value Lambert
-            <> Opt.help "Diffusion method"
+            <> Opt.help "Diffusion method (lambert, or hemisphere)"
             <> Opt.showDefault
       cutoff <-
         fromIntegral @Natural
@@ -106,7 +106,7 @@ parseDiffusion :: String -> Maybe Diffusion
 parseDiffusion =
   runReaderT $
     asum
-      [ ReaderT $ \txt -> do method <$ guard (txt == label)
+      [ ReaderT $ \txt -> do method <$ guard (map C.toLower txt == label)
       | method <- [Lambert, Hemisphere]
       , label <- drop 1 . inits . map C.toLower $ show method
       ]
