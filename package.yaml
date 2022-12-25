@@ -98,6 +98,17 @@ executables:
     dependencies:
     - raytracing
 
+  diffuse:
+    main:                diffuse.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -O2
+    - -with-rtsopts=-N
+    dependencies:
+    - raytracing
+
 tests:
   raytracing-test:
     main:                Spec.hs

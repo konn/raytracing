@@ -61,7 +61,7 @@ class Hittable obj where
 
 inRange :: Ord a => Maybe a -> Maybe a -> a -> Bool
 {-# INLINE inRange #-}
-inRange mmin mmax a = maybe True (<= a) mmin && maybe True (a <=) mmax
+inRange mmin mmax a = maybe True (< a) mmin && maybe True (a <) mmax
 
 newtype FoldHittables t obj = Hittables {hittables :: t obj}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)

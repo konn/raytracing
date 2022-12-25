@@ -33,6 +33,7 @@ library
       RayTracing.Object.List
       RayTracing.Object.Sphere
       RayTracing.Ray
+      System.Random.Utils
   other-modules:
       Paths_raytracing
   hs-source-dirs:
@@ -61,6 +62,35 @@ library
 
 executable blue-to-white
   main-is: blue-to-white.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      adjunctions
+    , base >=4.7 && <5
+    , bytestring
+    , distributive
+    , fmlist
+    , generic-lens
+    , lens
+    , linear
+    , massiv
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , semigroups
+    , streaming
+    , streaming-bytestring
+    , vector
+    , vector-th-unbox
+  default-language: Haskell2010
+
+executable diffuse
+  main-is: diffuse.hs
   other-modules:
       Paths_raytracing
   hs-source-dirs:
