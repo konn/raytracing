@@ -29,6 +29,7 @@ dependencies:
 - lens
 - linear
 - massiv
+- optparse-applicative
 - profunctors
 - random
 - rio

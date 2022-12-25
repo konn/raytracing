@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Data.Avg
       Data.Image.Format.PPM
       Data.Image.Types
       Linear.Direction
@@ -49,6 +50,7 @@ library
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , rio
@@ -77,6 +79,7 @@ executable blue-to-white
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing
@@ -106,6 +109,7 @@ executable diffuse
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing
@@ -135,6 +139,7 @@ executable gradient-with-simple-sphere
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing
@@ -164,6 +169,7 @@ executable spheres
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing
@@ -193,6 +199,7 @@ executable spheres-antialias
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing
@@ -223,6 +230,7 @@ test-suite raytracing-test
     , lens
     , linear
     , massiv
+    , optparse-applicative
     , profunctors
     , random
     , raytracing

@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
