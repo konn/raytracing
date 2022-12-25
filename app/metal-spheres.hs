@@ -134,9 +134,10 @@ mkImage g0 opts@Options {..} =
                       (Sz3 imageHeight imageWidth samplesPerPixel)
                       ( \_ (M.Ix3 j i _) ->
                           pure <<< flip runSTGen \g -> do
-                            !c <- randomRM (0, 1.0) g
-                            let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
-                                !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
+                            !dx <- randomRM (-1.0, 1.0) g
+                            !dy <- randomRM (-1.0, 1.0) g
+                            let !u = (fromIntegral i + dx) / (fromIntegral imageWidth - 1)
+                                !v = (fromIntegral j + dy) / (fromIntegral imageHeight - 1)
                                 !r = getRay aCamera $ P $ V2 u v
                             Avg 1 <$> rayColour epsilon scene g cutoff r
                       )
