@@ -17,7 +17,7 @@ import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import Linear
-import Linear.Affine (Point (..), unP, (.+^), (.-.))
+import Linear.Affine (Point (..), (.+^), (.-.))
 import Linear.Direction
 import RIO.FilePath ((</>))
 import RayTracing.Camera
@@ -95,7 +95,7 @@ colorRayDiffuse obj g = go
       | Just Hit {..} <- hitWithin (Just epsilon) Nothing r obj = do
           dev <- applyRandomGenM randomPointInUnitSphere g
           let n = unDir normal
-              target = coord .+^ n .+^ unP dev
+              target = coord .+^ n .+^ unDir dev
               reflected =
                 Ray
                   { rayOrigin = coord
