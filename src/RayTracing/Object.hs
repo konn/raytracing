@@ -16,6 +16,7 @@ module RayTracing.Object (
 ) where
 
 import Control.Lens ((%~))
+import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Bifoldable
 import Data.Bifunctor
 import Data.Bitraversable (Bitraversable (..), bifoldMapDefault, bimapDefault)
@@ -81,7 +82,7 @@ rayColour eps Scene {..} g = go
       | depth <= 0 = pure 0.0
       | Just (hit, obj) <-
           withNearestHitWithin objects (Just eps) Nothing r = do
-          scatter obj hit r g >>= \case
+          runMaybeT (scatter obj hit r g) >>= \case
             Nothing -> pure 0.0
             Just (attenuation, scattered) ->
               (attenuation .*) <$> go (depth - 1) scattered

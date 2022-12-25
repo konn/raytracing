@@ -39,6 +39,7 @@ dependencies:
 - semigroups
 - streaming
 - streaming-bytestring
+- transformers
 - vector
 - vector-th-unbox
 

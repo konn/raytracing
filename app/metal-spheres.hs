@@ -46,6 +46,7 @@ data Options = Options
   , imageWidth :: !Int
   , epsilon :: !Double
   , outputPath :: !FilePath
+  , fuzzy :: !Bool
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -101,6 +102,12 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.help "Output path"
             <> Opt.showDefault
             <> Opt.value ("workspace" </> "metal-spheres.ppm")
+      fuzzy <-
+        Opt.switch $
+          Opt.long "fuzzy"
+            <> Opt.short 'F'
+            <> Opt.showDefault
+            <> Opt.help "Enable fuzzy metal rendering"
       pure Options {..}
 
 aCamera :: Camera
@@ -135,14 +142,20 @@ mkImage g0 opts@Options {..} =
                       )
 
 mkScene :: Options -> Scene
-mkScene Options {} =
+mkScene Options {..} =
   let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
       groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
       centerMaterial = Lambertian $ MkAttn 0.7 0.3 0.3
       center = Sphere {center = p3 (0, 0, -1), radius = 0.5}
-      leftMaterial = Metal $ MkAttn 0.8 0.8 0.8
+      leftRatio = MkAttn 0.8 0.8 0.8
+      leftMaterial
+        | fuzzy = MkSomeMaterial $ FuzzyMetal leftRatio 0.3
+        | otherwise = MkSomeMaterial $ Metal leftRatio
       leftS = Sphere {center = p3 (-1, 0, -1), radius = 0.5}
-      rightMaterial = Metal $ MkAttn 0.8 0.6 0.2
+      rightRatio = MkAttn 0.8 0.6 0.2
+      rightMaterial
+        | fuzzy = MkSomeMaterial $ FuzzyMetal rightRatio 1.0
+        | otherwise = MkSomeMaterial $ Metal rightRatio
       rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
    in Scene
         { objects =

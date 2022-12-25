@@ -36,6 +36,7 @@ library
       RayTracing.Object.Shape
       RayTracing.Object.Sphere
       RayTracing.Ray
+      System.Random.Orphans
       System.Random.Utils
   other-modules:
       Paths_raytracing
@@ -62,6 +63,7 @@ library
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -94,6 +96,7 @@ executable blue-to-white
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -126,6 +129,7 @@ executable diffuse
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -158,6 +162,7 @@ executable gradient-with-simple-sphere
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -190,6 +195,7 @@ executable metal-spheres
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -222,6 +228,7 @@ executable spheres
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -254,6 +261,7 @@ executable spheres-antialias
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
@@ -287,6 +295,7 @@ test-suite raytracing-test
     , semigroups
     , streaming
     , streaming-bytestring
+    , transformers
     , vector
     , vector-th-unbox
   default-language: Haskell2010
