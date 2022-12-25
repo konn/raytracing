@@ -63,24 +63,25 @@ mkImage :: RandomGen g => g -> WordImage
 mkImage g0 =
   fromDoubleImage $
     M.computeP $
-      M.reverse M.Dim2 $
-        M.map getAvg $
-          M.foldInner $
-            view _3 $
-              M.generateSplitSeedArray @M.U
-                M.defRowMajorUnbalanced
-                g0
-                (pure . split)
-                M.Par
-                (Sz3 imageHeight imageWidth samplesPerPixel)
-                ( \_ (M.Ix3 j i _) ->
-                    pure <<< flip runSTGen \g -> do
-                      !c <- randomRM (0, 1.0) g
-                      let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
-                          !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
-                          !r = getRay aCamera $ P $ V2 u v
-                      Avg 1 <$> colorRayDiffuse world g 100 r
-                )
+      correctGamma $
+        M.reverse M.Dim2 $
+          M.map getAvg $
+            M.foldInner $
+              view _3 $
+                M.generateSplitSeedArray @M.U
+                  M.defRowMajorUnbalanced
+                  g0
+                  (pure . split)
+                  M.Par
+                  (Sz3 imageHeight imageWidth samplesPerPixel)
+                  ( \_ (M.Ix3 j i _) ->
+                      pure <<< flip runSTGen \g -> do
+                        !c <- randomRM (0, 1.0) g
+                        let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
+                            !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
+                            !r = getRay aCamera $ P $ V2 u v
+                        Avg 1 <$> colorRayDiffuse world g 100 r
+                  )
 
 colorRayDiffuse :: (RandomGenM g r m, Hittable obj) => obj -> g -> Int -> Ray -> m (Pixel Double)
 colorRayDiffuse obj g = go

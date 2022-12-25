@@ -13,6 +13,7 @@ module Data.Image.Types (
   height,
   fromDoubleImage,
   generateImage,
+  correctGamma,
 ) where
 
 import Control.Arrow ((>>>))
@@ -108,3 +109,9 @@ generateImage sz =
     . M.computeP
     . M.reverse M.Dim2
     . M.makeArray @M.D M.Par sz
+
+correctGamma ::
+  M.Source r (Pixel Double) =>
+  M.Matrix r (Pixel Double) ->
+  M.Matrix M.D (Pixel Double)
+correctGamma = M.map (fmap sqrt)
