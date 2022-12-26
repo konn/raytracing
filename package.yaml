@@ -27,6 +27,7 @@ dependencies:
 - distributive
 - fmlist
 - generic-lens
+- integer-roots
 - lens
 - linear
 - massiv

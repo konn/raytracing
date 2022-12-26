@@ -9,18 +9,21 @@
 module Main (main) where
 
 import Control.Applicative ((<**>))
-import Control.Arrow ((<<<))
 import Control.Lens
 import Control.Monad (guard)
-import Data.Avg
+import Data.ByteString.Char8 qualified as BS
+import Data.Char qualified as C
 import Data.Generics.Labels ()
+import Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing)
 import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
+import Math.NumberTheory.Roots (integerSquareRoot)
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
@@ -29,7 +32,6 @@ import RayTracing.Object
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
-import System.Random.Stateful (randomRM, runSTGen)
 
 main :: IO ()
 main = do
@@ -40,6 +42,9 @@ main = do
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
 
+data Antialiasing = Random | Stencil
+  deriving (Show, Eq, Ord, Generic)
+
 data Options = Options
   { cutoff :: !Int
   , samplesPerPixel :: !Int
@@ -47,6 +52,7 @@ data Options = Options
   , epsilon :: !Double
   , outputPath :: !FilePath
   , fuzzy :: !Bool
+  , antialiasing :: !Antialiasing
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -108,7 +114,28 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.short 'F'
             <> Opt.showDefault
             <> Opt.help "Enable fuzzy metal rendering"
+      antialiasing <-
+        Opt.option (Opt.maybeReader parseAntialising) $
+          Opt.long "antialias"
+            <> Opt.short 'A'
+            <> Opt.value Random
+            <> Opt.showDefault
+            <> Opt.help "Antialiasing method"
       pure Options {..}
+
+parseAntialising :: String -> Maybe Antialiasing
+parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
+  where
+    go (Just m) _ = Just m
+    go Nothing sub
+      | Trie.null sub = Nothing
+      | [a] <- Trie.elems sub = Just a
+      | otherwise = Nothing
+    dic =
+      Trie.fromList
+        [ (BS.pack $ map C.toLower $ show mtd, mtd)
+        | mtd <- [Random, Stencil]
+        ]
 
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig
@@ -119,28 +146,19 @@ mkImage g0 opts@Options {..} =
         floor $
           fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
       scene = mkScene opts
+      sz = Sz2 imageHeight imageWidth
+      antialias = case antialiasing of
+        Random -> randomSamplingAntialias g0 samplesPerPixel sz
+        Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
    in fromDoubleImage $
         M.computeP $
           correctGamma $
-            M.reverse M.Dim2 $
-              M.map getAvg $
-                M.foldInner $
-                  view _3 $
-                    M.generateSplitSeedArray @M.U
-                      M.defRowMajorUnbalanced
-                      g0
-                      (pure . split)
-                      M.Par
-                      (Sz3 imageHeight imageWidth samplesPerPixel)
-                      ( \_ (M.Ix3 j i _) ->
-                          pure <<< flip runSTGen \g -> do
-                            !dx <- randomRM (-1.0, 1.0) g
-                            !dy <- randomRM (-1.0, 1.0) g
-                            let !u = (fromIntegral i + dx) / (fromIntegral imageWidth - 1)
-                                !v = (fromIntegral j + dy) / (fromIntegral imageHeight - 1)
-                                !r = getRay aCamera $ P $ V2 u v
-                            Avg 1 <$> rayColour epsilon scene g cutoff r
-                      )
+            antialias $
+              \g ->
+                curry $ rayColour epsilon scene g cutoff . getRay aCamera . p2
+
+p2 :: (a, a) -> Point V2 a
+p2 = P . uncurry V2
 
 mkScene :: Options -> Scene
 mkScene Options {..} =

@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Data.Avg
+      Data.Image.Antialiasing
       Data.Image.Format.PPM
       Data.Image.Types
       Linear.Direction
@@ -51,6 +52,7 @@ library
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -83,6 +85,7 @@ executable blue-to-white
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -116,6 +119,7 @@ executable diffuse
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -149,6 +153,7 @@ executable gradient-with-simple-sphere
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -182,6 +187,7 @@ executable metal-spheres
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -215,6 +221,7 @@ executable spheres
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -248,6 +255,7 @@ executable spheres-antialias
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
@@ -282,6 +290,7 @@ test-suite raytracing-test
     , distributive
     , fmlist
     , generic-lens
+    , integer-roots
     , lens
     , linear
     , massiv
