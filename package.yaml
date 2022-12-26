@@ -25,7 +25,9 @@ dependencies:
 - bytestring
 - bytestring-trie
 - distributive
+- dlist
 - fmlist
+- foldl
 - generic-lens
 - integer-roots
 - lens
@@ -38,8 +40,7 @@ dependencies:
 - rio
 - rio-orphans
 - semigroups
-- streaming
-- streaming-bytestring
+- strict
 - transformers
 - vector
 - vector-th-unbox
@@ -138,6 +139,18 @@ executables:
 
   camera:
     main:                camera.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -O2
+    - -with-rtsopts=-N
+    dependencies:
+    - raytracing
+    - scientific
+
+  one-weekend-finale:
+    main:                one-weekend-finale.hs
     source-dirs:         app
     ghc-options:
     - -threaded

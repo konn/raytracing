@@ -51,7 +51,9 @@ library
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -64,8 +66,7 @@ library
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -84,7 +85,9 @@ executable blue-to-white
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -98,8 +101,7 @@ executable blue-to-white
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -118,7 +120,9 @@ executable camera
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -133,8 +137,7 @@ executable camera
     , rio-orphans
     , scientific
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -153,7 +156,9 @@ executable diffuse
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -167,8 +172,7 @@ executable diffuse
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -187,7 +191,9 @@ executable gradient-with-simple-sphere
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -201,8 +207,7 @@ executable gradient-with-simple-sphere
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -221,7 +226,9 @@ executable metal-spheres
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -235,8 +242,7 @@ executable metal-spheres
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -255,7 +261,9 @@ executable metals-and-glasses
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -269,8 +277,43 @@ executable metals-and-glasses
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
+    , transformers
+    , vector
+    , vector-th-unbox
+  default-language: Haskell2010
+
+executable one-weekend-finale
+  main-is: one-weekend-finale.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      adjunctions
+    , base >=4.7 && <5
+    , bytestring
+    , bytestring-trie
+    , distributive
+    , dlist
+    , fmlist
+    , foldl
+    , generic-lens
+    , integer-roots
+    , lens
+    , linear
+    , massiv
+    , massiv-io
+    , optparse-applicative
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , scientific
+    , semigroups
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -289,7 +332,9 @@ executable spheres
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -303,8 +348,7 @@ executable spheres
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -323,7 +367,9 @@ executable spheres-antialias
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -337,8 +383,7 @@ executable spheres-antialias
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox
@@ -358,7 +403,9 @@ test-suite raytracing-test
     , bytestring
     , bytestring-trie
     , distributive
+    , dlist
     , fmlist
+    , foldl
     , generic-lens
     , integer-roots
     , lens
@@ -372,8 +419,7 @@ test-suite raytracing-test
     , rio
     , rio-orphans
     , semigroups
-    , streaming
-    , streaming-bytestring
+    , strict
     , transformers
     , vector
     , vector-th-unbox

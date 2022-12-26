@@ -8,6 +8,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fprint-potential-instances #-}
 
 module RayTracing.Object.Material (
@@ -44,8 +45,8 @@ import System.Random.Stateful (RandomGenM, applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
 
 newtype Attenuation a = Attenuation {getAttenuation :: Pixel a}
-  deriving (Show, Eq, Ord, Generic)
-  deriving newtype (Num, Fractional)
+  deriving (Show, Eq, Ord, Generic, Functor, Foldable, Traversable)
+  deriving newtype (Num, Fractional, Applicative)
 
 pattern MkAttn :: a -> a -> a -> Attenuation a
 pattern MkAttn {redRatio, greenRatio, blueRatio} =
