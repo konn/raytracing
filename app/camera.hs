@@ -9,7 +9,7 @@
 
 module Main (main) where
 
-import Control.Applicative ((<**>))
+import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (guard)
 import Control.Monad.Trans.Reader (ReaderT (..))
@@ -57,6 +57,7 @@ data Antialiasing = Random | Stencil
 data Options = Options
   { cutoff :: !Int
   , samplesPerPixel :: !Int
+  , hollow :: !Bool
   , imageWidth :: !Int
   , epsilon :: !Double
   , outputPath :: !FilePath
@@ -174,6 +175,9 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
               <> Opt.help "The View-Up vector of the camera"
           )
           <&> \(x, y, z) -> dir (V3 x y z)
+      hollow <-
+        Opt.flag' True (Opt.long "hollow" <> Opt.help "Makes glass ball hollow")
+          <|> not <$> Opt.switch (Opt.long "no-hollow" <> Opt.help "Makes glass ball dense")
       pure Options {..}
 
 parseRatio :: String -> Maybe Rational
@@ -228,7 +232,7 @@ p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
 mkScene :: Options -> Scene
-mkScene Options {} =
+mkScene Options {..} =
   let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
       groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
       centerMaterial = Lambertian $ MkAttn 0.1 0.2 0.5
@@ -244,9 +248,11 @@ mkScene Options {} =
             [ MkSomeObject ground groundMaterial
             , MkSomeObject center centerMaterial
             , MkSomeObject leftS leftMaterial
-            , MkSomeObject hollowLeftSphere leftMaterial
             , MkSomeObject rightS rightMaterial
             ]
+              ++ [ MkSomeObject hollowLeftSphere leftMaterial
+                 | hollow
+                 ]
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)
