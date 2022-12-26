@@ -302,30 +302,45 @@ mkScene g Options {} = do
            in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
       }
   where
-    generateBalls = forM_ @[] [-6 .. 5] $ \a -> forM_ @[] [-6 .. 5] $ \b -> do
+    generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
       r <- randomRM (0.15, 0.25) g
       let basePt = p3 (4, r, 0.0)
       dx <- randomRM (0, 0.9) g
       dy <- randomRM (0, 0.9) g
       let center = p3 (a + dx, r, b + dy)
+          sphere = Sphere center r
       when (distance center basePt > 0.9) $ do
-        material <-
+        objects <-
           chooseM
             g
             [
-              ( 8.0
-              , MkSomeMaterial . Lambertian
+              ( 7.5
+              , pure . MkSomeObject sphere . Lambertian
                   <$> ((*) <$> randomAtten (0, 1.0) g <*> randomAtten (0, 1.0) g)
               )
             ,
-              ( 1.5
-              , fmap MkSomeMaterial . FuzzyMetal
+              ( 1.0
+              , fmap (pure . MkSomeObject sphere) . FuzzyMetal
                   <$> randomAtten (0.5, 1.0) g
                   <*> randomRM (0, 0.5) g
               )
-            , (0.5, MkSomeMaterial . Dielectric <$> randomRM (1.5, 1.7) g)
+            ,
+              ( 0.75
+              , do
+                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
+                  pure [MkSomeObject sphere glass]
+              )
+            ,
+              ( 0.75
+              , do
+                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
+                  pure
+                    [ MkSomeObject sphere glass
+                    , MkSomeObject (sphere & #radius *~ -0.9) glass
+                    ]
+              )
             ]
-        tell $ DL.singleton $ Object (MkSomeHittable $ Sphere center 0.2) material
+        tell $ DL.fromList objects
 
 randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation Double)
 randomAtten ran = sequenceA . pure . randomRM ran
