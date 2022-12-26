@@ -13,6 +13,7 @@ module RayTracing.Camera (
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine
+import Linear.Angle
 import RayTracing.Ray
 
 data Camera = Camera
@@ -24,7 +25,7 @@ data Camera = Camera
 
 data CameraConfig = CameraConfig
   { aspectRatio :: {-# UNPACK #-} !Double
-  , viewportHeight :: {-# UNPACK #-} !Double
+  , verticalFieldOfView :: {-# UNPACK #-} !(Angle Double)
   , focalLength :: {-# UNPACK #-} !Double
   , cameraOrigin :: {-# UNPACK #-} !(Point V3 Double)
   }
@@ -34,14 +35,16 @@ defaultCameraConfig :: CameraConfig
 defaultCameraConfig =
   CameraConfig
     { aspectRatio = 16.0 / 9.0
-    , viewportHeight = 2.0
+    , verticalFieldOfView = (pi / 2) @@ rad
     , focalLength = 1.0
     , cameraOrigin = 0
     }
 
 mkCamera :: CameraConfig -> Camera
 mkCamera CameraConfig {..} =
-  let viewportWidth = aspectRatio * viewportHeight
+  let h = tanA $ verticalFieldOfView ^/ 2.0
+      viewportHeight = 2 * h
+      viewportWidth = aspectRatio * viewportHeight
       horizontal = V3 viewportWidth 0 0
       vertical = V3 0 viewportHeight 0
       lowerLeftCorner =
