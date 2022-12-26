@@ -28,6 +28,7 @@ import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
 import Linear.Angle (Angle, deg, (@@))
+import Linear.Direction (dir)
 import Math.NumberTheory.Roots (integerSquareRoot)
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
@@ -173,8 +174,7 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
 mkImage :: RandomGen g => g -> Options -> WordImage
 mkImage g0 opts@Options {..} =
   let imageHeight =
-        floor $
-          fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
+        floor $ fromIntegral imageWidth / aspectRatio
       scene = mkScene opts
       sz = Sz2 imageHeight imageWidth
       aCamera =
@@ -182,6 +182,9 @@ mkImage g0 opts@Options {..} =
           defaultCameraConfig
             & #aspectRatio .~ aspectRatio
             & #verticalFieldOfView .~ verticalFieldOfView
+            & #cameraOrigin .~ p3 (-2, 2, 1)
+            & #lookingAt .~ p3 (0, 0, -1)
+            & #viewUp .~ dir (V3 0 1 0)
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
@@ -197,14 +200,22 @@ p2 = P . uncurry V2
 
 mkScene :: Options -> Scene
 mkScene Options {} =
-  let r = cos $ pi / 4
-      leftMaterial = Lambertian $ MkAttn 0 0 1
-      leftS = Sphere (p3 (-r, 0, -1)) r
-      rightS = Sphere (p3 (r, 0, -1)) r
-      rightMaterial = Lambertian $ MkAttn 1 0 0
+  let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
+      groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
+      centerMaterial = Lambertian $ MkAttn 0.1 0.2 0.5
+      center = Sphere {center = p3 (0, 0, -1), radius = 0.5}
+      leftMaterial = Dielectric 1.5
+      leftS = Sphere {center = p3 (-1, 0, -1), radius = 0.5}
+      hollowLeftSphere = Sphere {center = p3 (-1, 0, -1), radius = -0.45}
+      rightRatio = MkAttn 0.8 0.6 0.2
+      rightMaterial = Metal rightRatio
+      rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
    in Scene
         { objects =
-            [ MkSomeObject leftS leftMaterial
+            [ MkSomeObject ground groundMaterial
+            , MkSomeObject center centerMaterial
+            , MkSomeObject leftS leftMaterial
+            , MkSomeObject hollowLeftSphere leftMaterial
             , MkSomeObject rightS rightMaterial
             ]
         , background = \Ray {..} ->
