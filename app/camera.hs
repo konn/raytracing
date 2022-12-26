@@ -28,7 +28,7 @@ import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
 import Linear.Angle (Angle, deg, (@@))
-import Linear.Direction (dir)
+import Linear.Direction (Dir, dir)
 import Math.NumberTheory.Roots (integerSquareRoot)
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
@@ -63,6 +63,9 @@ data Options = Options
   , antialiasing :: !Antialiasing
   , aspectRatio :: !Double
   , verticalFieldOfView :: !(Angle Double)
+  , cameraOrigin :: !(Point V3 Double)
+  , lookingAt :: !(Point V3 Double)
+  , viewUp :: !(Dir V3 Double)
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -145,6 +148,32 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
                 <> Opt.help "Vertical field of view, in Degree"
                 <> Opt.showDefault
             )
+      cameraOrigin <-
+        fmap p3 $
+          Opt.option Opt.auto $
+            Opt.long "camera-origin"
+              <> Opt.short 'O'
+              <> Opt.value (0, 0, 0)
+              <> Opt.showDefault
+              <> Opt.help "The camera origin where the camera looks from"
+      lookingAt <-
+        fmap p3 $
+          Opt.option Opt.auto $
+            Opt.long "look-at"
+              <> Opt.short 'F'
+              <> Opt.value (0, 0, -1)
+              <> Opt.showDefault
+              <> Opt.help "The point that the camera is looking at"
+      viewUp <-
+        Opt.option
+          Opt.auto
+          ( Opt.long "view-up"
+              <> Opt.long "vup"
+              <> Opt.short 'U'
+              <> Opt.value (0, 1, 0)
+              <> Opt.help "The View-Up vector of the camera"
+          )
+          <&> \(x, y, z) -> dir (V3 x y z)
       pure Options {..}
 
 parseRatio :: String -> Maybe Rational
@@ -182,9 +211,9 @@ mkImage g0 opts@Options {..} =
           defaultCameraConfig
             & #aspectRatio .~ aspectRatio
             & #verticalFieldOfView .~ verticalFieldOfView
-            & #cameraOrigin .~ p3 (-2, 2, 1)
-            & #lookingAt .~ p3 (0, 0, -1)
-            & #viewUp .~ dir (V3 0 1 0)
+            & #cameraOrigin .~ cameraOrigin
+            & #lookingAt .~ lookingAt
+            & #viewUp .~ viewUp
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
