@@ -11,7 +11,6 @@ import Data.Avg
 import Data.Image.Types
 import Data.Massiv.Array (Ix2 (..), Sz2)
 import Data.Massiv.Array qualified as M
-import Data.Massiv.Array.Unsafe qualified as UM
 import System.Random.Stateful
 
 randomSamplingAntialias ::
