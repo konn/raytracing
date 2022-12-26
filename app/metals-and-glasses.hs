@@ -168,6 +168,7 @@ mkScene Options {..} =
       center = Sphere {center = p3 (0, 0, -1), radius = 0.5}
       leftMaterial = Dielectric 1.5
       leftS = Sphere {center = p3 (-1, 0, -1), radius = 0.5}
+      hollowLeftSphere = Sphere {center = p3 (-1, 0, -1), radius = -0.4}
       rightRatio = MkAttn 0.8 0.6 0.2
       rightMaterial
         | fuzzy = MkSomeMaterial $ FuzzyMetal rightRatio 1.0
@@ -178,6 +179,7 @@ mkScene Options {..} =
             [ MkSomeObject ground groundMaterial
             , MkSomeObject center centerMaterial
             , MkSomeObject leftS leftMaterial
+            , MkSomeObject hollowLeftSphere leftMaterial
             , MkSomeObject rightS rightMaterial
             ]
         , background = \Ray {..} ->
