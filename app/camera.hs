@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NoFieldSelectors #-}
 
 module Main (main) where
 
@@ -21,6 +22,7 @@ import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Maybe (fromMaybe)
 import Data.Monoid (Alt (..))
 import Data.Scientific qualified as S
 import Data.Trie qualified as Trie
@@ -179,21 +181,32 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
       hollow <-
         Opt.flag' True (Opt.long "hollow" <> Opt.help "Makes glass ball hollow")
           <|> not <$> Opt.switch (Opt.long "no-hollow" <> Opt.help "Makes glass ball dense")
-      thinLens <- Opt.optional thinLensP
-      pure Options {..}
+      mthinLens <- Opt.optional thinLensP
+      pure $
+        let thinLens = tieThinLens cameraOrigin lookingAt <$> mthinLens
+         in Options {..}
 
-thinLensP :: Opt.Parser ThinLens
+data MThinLens = MThinLens {aperture :: !Double, focusDistance :: !(Maybe Double)}
+  deriving (Show, Eq, Ord, Generic)
+
+tieThinLens :: Point V3 Double -> Point V3 Double -> MThinLens -> ThinLens
+tieThinLens src dst tl@MThinLens {aperture} =
+  let focusDistance = fromMaybe (distance src dst) $ tl ^. #focusDistance
+   in ThinLens {..}
+
+thinLensP :: Opt.Parser MThinLens
 thinLensP = do
   aperture <-
     Opt.option Opt.auto $
       Opt.long "aperture" <> Opt.short 'a' <> Opt.help "The aperture of a camera lens"
   focusDistance <-
-    Opt.option Opt.auto $
-      Opt.long "focus-distance"
-        <> Opt.long "fdist"
-        <> Opt.short 'D'
-        <> Opt.help "The focus distance of a camera lens"
-  pure ThinLens {..}
+    Opt.optional $
+      Opt.option Opt.auto $
+        Opt.long "focus-distance"
+          <> Opt.long "fdist"
+          <> Opt.short 'D'
+          <> Opt.help "The focus distance of a camera lens. If --aperture is specified and this option is omitted, it will be set to the distance from the camera origin to looking-at point."
+  pure MThinLens {..}
 
 parseRatio :: String -> Maybe Rational
 parseRatio =
