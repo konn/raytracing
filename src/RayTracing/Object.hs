@@ -37,10 +37,6 @@ data Object shape material = Object
 instance Hittable shape => Hittable (Object shape mat) where
   hitWithin = hitWithin . shape
   {-# INLINE hitWithin #-}
-  hits = hits . shape
-  {-# INLINE hits #-}
-  doesHit = doesHit . shape
-  {-# INLINE doesHit #-}
   doesHitWithin = doesHitWithin . shape
   {-# INLINE doesHitWithin #-}
 
@@ -81,7 +77,7 @@ rayColour eps Scene {..} g = go
     go !depth r
       | depth <= 0 = pure 0.0
       | Just (hit, obj) <-
-          withNearestHitWithin objects (Just eps) Nothing r = do
+          withNearestHitWithin (Just eps) Nothing r objects = do
           runMaybeT (scatter obj hit r g) >>= \case
             Nothing -> pure 0.0
             Just (attenuation, scattered) ->

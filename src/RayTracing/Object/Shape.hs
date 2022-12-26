@@ -8,16 +8,18 @@ module RayTracing.Object.Shape (
   HitRecord (..),
   mkHitWithOutwardNormal,
   inRange,
-  withNearestHit,
   FoldHittables (..),
   SomeHittable (..),
   withNearestHitWithin,
 ) where
 
-import Control.Arrow ((>>>))
+import Control.Arrow ((&&&))
 import Data.FMList (FMList)
+import Data.List (foldl')
 import Data.Maybe (isJust)
-import Data.Semigroup (Any (..), Arg (..), Min (..))
+import Data.Semigroup (Any (..))
+import Data.Strict qualified as Strict
+import Data.Strict.Maybe qualified as StM
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
@@ -49,12 +51,6 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime =
    in Hit {..}
 
 class Hittable obj where
-  hits :: obj -> Ray -> Maybe HitRecord
-  hits obj = hitWithin obj Nothing Nothing
-  doesHit :: obj -> Ray -> Bool
-  {-# INLINE doesHit #-}
-  doesHit = fmap (not . null) . hits
-
   hitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Maybe HitRecord
 
   doesHitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Bool
@@ -82,10 +78,6 @@ data SomeHittable where
   MkSomeHittable :: Hittable obj => obj -> SomeHittable
 
 instance Hittable SomeHittable where
-  hits = \case (MkSomeHittable obj) -> hits obj
-  {-# INLINE hits #-}
-  doesHit = \case (MkSomeHittable obj) -> doesHit obj
-  {-# INLINE doesHit #-}
   hitWithin =
     \case (MkSomeHittable obj) -> hitWithin obj
   {-# INLINE hitWithin #-}
@@ -93,38 +85,41 @@ instance Hittable SomeHittable where
     \case (MkSomeHittable obj) -> doesHitWithin obj
   {-# INLINE doesHitWithin #-}
 
-withNearestHit ::
-  (Foldable t, Hittable obj) =>
-  t obj ->
-  Ray ->
-  Maybe (HitRecord, obj)
-withNearestHit =
-  fmap (fmap (getMin >>> \(Arg _ b) -> b))
-    . foldMap
-      ( \obj ->
-          fmap (Min . (Arg <$> hitTime <*> (,obj))) . hits obj
-      )
+data NearestRecord obj = NearestRecord
+  { object :: !obj
+  , record :: {-# UNPACK #-} !HitRecord
+  , nearestSoFar :: !Double
+  }
+  deriving (Show, Eq, Ord, Generic, Functor, Foldable)
+
+toRec :: obj -> HitRecord -> NearestRecord obj
+toRec object record =
+  let nearestSoFar = hitTime record
+   in NearestRecord {..}
 
 withNearestHitWithin ::
   (Foldable t, Hittable obj) =>
-  t obj ->
   Maybe Double ->
   Maybe Double ->
   Ray ->
+  t obj ->
   Maybe (HitRecord, obj)
-withNearestHitWithin =
-  fmap (fmap $ fmap $ fmap (getMin >>> \(Arg _ b) -> b))
-    . foldMap
-      ( \obj ->
-          fmap (fmap $ fmap $ Min . (Arg <$> hitTime <*> (,obj))) . hitWithin obj
+withNearestHitWithin tmin tmax ray =
+  fmap (record &&& object)
+    . Strict.toLazy
+    . foldl'
+      ( \sofar obj ->
+          let tmax' = StM.maybe tmax (Just . nearestSoFar) sofar
+           in StM.maybe
+                sofar
+                StM.Just
+                $ Strict.toStrict
+                  (toRec obj <$> hitWithin obj tmin tmax' ray)
       )
+      StM.Nothing
 
 instance (Foldable t, Hittable obj) => Hittable (FoldHittables t obj) where
-  hits = fmap (fmap fst) . withNearestHit
-  {-# INLINE hits #-}
-  doesHit = fmap getAny . foldMap (fmap Any . doesHit)
-  {-# INLINE doesHit #-}
-  hitWithin = fmap (fmap $ fmap $ fmap fst) . withNearestHitWithin
+  hitWithin obj tmin tmax ray = fst <$> withNearestHitWithin tmin tmax ray obj
   {-# INLINE hitWithin #-}
   doesHitWithin = fmap (fmap $ fmap getAny) . foldMap (fmap (fmap $ fmap Any) . doesHitWithin)
   {-# INLINE doesHitWithin #-}

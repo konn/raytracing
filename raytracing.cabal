@@ -33,7 +33,6 @@ library
       Linear.Direction
       RayTracing.Camera
       RayTracing.Object
-      RayTracing.Object.List
       RayTracing.Object.Material
       RayTracing.Object.Shape
       RayTracing.Object.Sphere
