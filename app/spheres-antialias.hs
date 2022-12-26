@@ -19,6 +19,7 @@ import RayTracing.Object.Shape
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
+import System.Random.Stateful (runSTGen_)
 
 main :: IO ()
 main = do
@@ -56,7 +57,8 @@ mkImage g =
       ( \(M.Ix3 j i _) c ->
           let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
               !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
-              !r = getRay aCamera $ P $ V2 u v
+              -- No thin lens here, so we can cheat to pass a dummy StdGen
+              !r = runSTGen_ (mkStdGen 42) $ \g' -> getRay g' aCamera $ P $ V2 u v
            in Avg 1 $ colorRay world r
       )
     $ M.computeP @M.U
@@ -64,7 +66,7 @@ mkImage g =
 
 colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
-  | Just Hit {..} <- hitWithin obj (Just 0) Nothing r  =
+  | Just Hit {..} <- hitWithin obj (Just 0) Nothing r =
       let n = unDir normal
        in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =

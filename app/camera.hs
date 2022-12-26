@@ -11,7 +11,7 @@ module Main (main) where
 
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
-import Control.Monad (guard)
+import Control.Monad (guard, (<=<))
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
@@ -67,6 +67,7 @@ data Options = Options
   , cameraOrigin :: !(Point V3 Double)
   , lookingAt :: !(Point V3 Double)
   , viewUp :: !(Dir V3 Double)
+  , thinLens :: !(Maybe ThinLens)
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -178,7 +179,21 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
       hollow <-
         Opt.flag' True (Opt.long "hollow" <> Opt.help "Makes glass ball hollow")
           <|> not <$> Opt.switch (Opt.long "no-hollow" <> Opt.help "Makes glass ball dense")
+      thinLens <- Opt.optional thinLensP
       pure Options {..}
+
+thinLensP :: Opt.Parser ThinLens
+thinLensP = do
+  aperture <-
+    Opt.option Opt.auto $
+      Opt.long "aperture" <> Opt.short 'a' <> Opt.help "The aperture of a camera lens"
+  focusDistance <-
+    Opt.option Opt.auto $
+      Opt.long "focus-distance"
+        <> Opt.long "fdist"
+        <> Opt.short 'D'
+        <> Opt.help "The focus distance of a camera lens"
+  pure ThinLens {..}
 
 parseRatio :: String -> Maybe Rational
 parseRatio =
@@ -218,15 +233,17 @@ mkImage g0 opts@Options {..} =
             & #cameraOrigin .~ cameraOrigin
             & #lookingAt .~ lookingAt
             & #viewUp .~ viewUp
+            & #thinLens .~ thinLens
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
    in fromDoubleImage $
         M.computeP $
           correctGamma $
-            antialias $
-              \g ->
-                curry $ rayColour epsilon scene g cutoff . getRay aCamera . p2
+            antialias $ \g ->
+              curry $
+                rayColour epsilon scene g cutoff
+                  <=< getRay g aCamera . p2
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2

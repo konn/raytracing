@@ -10,7 +10,7 @@ module Main (main) where
 
 import Control.Applicative ((<**>))
 import Control.Lens
-import Control.Monad (guard)
+import Control.Monad (guard, (<=<))
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
 import Data.Generics.Labels ()
@@ -153,9 +153,10 @@ mkImage g0 opts@Options {..} =
    in fromDoubleImage $
         M.computeP $
           correctGamma $
-            antialias $
-              \g ->
-                curry $ rayColour epsilon scene g cutoff . getRay aCamera . p2
+            antialias $ \g ->
+              curry $
+                rayColour epsilon scene g cutoff
+                  <=< getRay g aCamera . p2
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2

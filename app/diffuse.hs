@@ -157,7 +157,7 @@ mkImage g0 opts@Options {..} =
                             !c <- randomRM (0, 1.0) g
                             let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
                                 !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
-                                !r = getRay aCamera $ P $ V2 u v
+                            !r <- getRay g aCamera $ P $ V2 u v
                             Avg 1 <$> rayColour epsilon scene g cutoff r
                       )
 

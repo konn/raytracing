@@ -8,20 +8,29 @@ module RayTracing.Camera (
   CameraConfig (..),
   defaultCameraConfig,
   getRay,
+  ThinLens (..),
 ) where
 
+import Control.Applicative (liftA2)
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine
 import Linear.Angle
 import Linear.Direction
 import RayTracing.Ray
+import System.Random.Stateful (RandomGenM, applyRandomGenM)
+import System.Random.Utils (randomPointInUnitDisk)
 
 data Camera = Camera
   { cameraOrigin :: {-# UNPACK #-} !(Point V3 Double)
+  , xUnit, yUnit :: {-# UNPACK #-} !(Dir V3 Double)
   , horizontal, vertical :: {-# UNPACK #-} !(V3 Double)
   , lowerLeftCorner :: {-# UNPACK #-} !(Point V3 Double)
+  , lensRadius :: !(Maybe Double)
   }
+  deriving (Show, Eq, Ord, Generic)
+
+data ThinLens = ThinLens {aperture, focusDistance :: !Double}
   deriving (Show, Eq, Ord, Generic)
 
 data CameraConfig = CameraConfig
@@ -30,6 +39,7 @@ data CameraConfig = CameraConfig
   , cameraOrigin :: {-# UNPACK #-} !(Point V3 Double)
   , lookingAt :: {-# UNPACK #-} !(Point V3 Double)
   , viewUp :: {-# UNPACK #-} !(Dir V3 Double)
+  , thinLens :: !(Maybe ThinLens)
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -41,6 +51,7 @@ defaultCameraConfig =
     , cameraOrigin = 0
     , lookingAt = P (V3 0 0 (-1))
     , viewUp = dir $ V3 0 1 0
+    , thinLens = Nothing
     }
 
 mkCamera :: CameraConfig -> Camera
@@ -49,18 +60,34 @@ mkCamera CameraConfig {..} =
       viewportHeight = 2 * h
       viewportWidth = aspectRatio * viewportHeight
       w = dir $ cameraOrigin .-. lookingAt
-      u = dir $ unDir viewUp `cross` unDir w
-      v = unDir w `cross` unDir u
-      horizontal = viewportWidth *^ unDir u
-      vertical = viewportHeight *^ v
+      u@xUnit = dir $ unDir viewUp `cross` unDir w
+      -- v is unit, as w ⊥ u
+      v@yUnit = unsafeDir $ unDir w `cross` unDir u
+      fdist = maybe 1.0 focusDistance thinLens
+      horizontal = fdist * viewportWidth *^ unDir u
+      vertical = fdist * viewportHeight *^ unDir v
       lowerLeftCorner =
         cameraOrigin
           .-^ horizontal ^/ 2.0
           .-^ vertical ^/ 2.0
-          .-^ unDir w
+          .-^ (fdist *| w)
+      lensRadius = (/ 2) . aperture <$> thinLens
    in Camera {..}
 
-getRay :: Camera -> Point V2 Double -> Ray
-getRay Camera {..} (P (V2 s t)) =
-  let rayDirection = lowerLeftCorner .+^ s *^ horizontal .+^ t *^ vertical .-. cameraOrigin
-   in Ray {rayOrigin = cameraOrigin, ..}
+getRay :: RandomGenM g r m => g -> Camera -> Point V2 Double -> m Ray
+getRay g Camera {..} (P (V2 s t)) = do
+  offset <-
+    maybe
+      (pure 0)
+      ( \r ->
+          sum
+            . liftA2 (^*) (V2 (unDir xUnit) (unDir yUnit))
+            . unP
+            . (r *^)
+            <$> applyRandomGenM randomPointInUnitDisk g
+      )
+      lensRadius
+  let rayDirection =
+        lowerLeftCorner .+^ s *^ horizontal .+^ t *^ vertical .-. cameraOrigin .-^ offset
+
+  pure Ray {rayOrigin = cameraOrigin .+^ offset, ..}

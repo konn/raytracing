@@ -153,9 +153,9 @@ mkImage g0 opts@Options {..} =
    in fromDoubleImage $
         M.computeP $
           correctGamma $
-            antialias $
-              \g ->
-                curry $ rayColour epsilon scene g cutoff . getRay aCamera . p2
+            antialias $ \g u v ->
+              rayColour epsilon scene g cutoff
+                =<< getRay g aCamera (p2 (u, v))
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
