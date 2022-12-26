@@ -19,16 +19,18 @@ module RayTracing.Object.Material (
   Metal (..),
   FuzzyMetal (..),
   SomeMaterial (..),
+  Dielectric (..),
 ) where
 
 import Control.Applicative (Applicative (..))
 import Control.Lens ((^.))
-import Control.Monad (guard)
+import Control.Monad (guard, join)
 import Control.Monad.Trans.Class (MonadTrans (..))
 import Control.Monad.Trans.Maybe (MaybeT)
 import Data.Coerce (coerce)
 import Data.Generics.Labels ()
 import Data.Image.Types
+import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
 import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
@@ -38,7 +40,7 @@ import Linear.Direction
 import RayTracing.Object.Shape (HitRecord (..))
 import RayTracing.Ray
 import System.Random.Orphans ()
-import System.Random.Stateful (RandomGenM, applyRandomGenM)
+import System.Random.Stateful (RandomGenM, applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
 
 newtype Attenuation a = Attenuation {getAttenuation :: Pixel a}
@@ -129,3 +131,48 @@ instance Material FuzzyMetal where
     guard (refled `dot` unDir normal > 0)
     pure (albedo, scatterred)
   {-# INLINE scatter #-}
+
+refract ::
+  HitRecord ->
+  Dielectric ->
+  -- | Surface normal
+  Dir V3 Double ->
+  -- | Inray
+  Dir V3 Double ->
+  -- | Reflectance threshold
+  Double ->
+  -- | Refracted vctor and the refraction
+  Maybe (V3 Double)
+refract Hit {..} di@Dielectric {..} n r thresh = do
+  let q
+        | frontFace = recip refractiveIndex
+        | otherwise = refractiveIndex
+      cosθ = -unDir r `dot` unDir n
+      sinθ = sqrt $ 1 - cosθ * cosθ
+      rPerp' = q *^ (r |+^ cosθ *| n)
+      rPara' = -sqrt (1 - quadrance rPerp') *| n
+      refrac = rPerp' ^+^ rPara'
+      refl = reflectance di cosθ
+  guard $ q * sinθ <= 1.0 && refl <= thresh
+  pure refrac
+
+reflectance ::
+  Dielectric ->
+  -- | Cosine
+  Double ->
+  Double
+reflectance (Dielectric idx) cosine =
+  let !r0 = join (*) $ (1 - idx) / (1 + idx)
+   in r0 + (1 - r0) * (1 - cosine) ^ (5 :: Int)
+
+newtype Dielectric = Dielectric {refractiveIndex :: Double}
+  deriving (Show, Eq, Ord, Generic)
+
+instance Material Dielectric where
+  scatter di h@Hit {..} r g = do
+    thresh <- lift $ randomRM (0.0, 1.0) g
+    let scat =
+          fromMaybe (reflectAround normal $ r ^. #rayDirection) $
+            refract h di normal (dir $ r ^. #rayDirection) thresh
+        scattered = Ray {rayOrigin = coord, rayDirection = scat}
+    pure (MkAttn 1.0 1.0 1.0, scattered)

@@ -206,6 +206,40 @@ executable metal-spheres
     , vector-th-unbox
   default-language: Haskell2010
 
+executable metals-and-glasses
+  main-is: metals-and-glasses.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      adjunctions
+    , base >=4.7 && <5
+    , bytestring
+    , bytestring-trie
+    , distributive
+    , fmlist
+    , generic-lens
+    , integer-roots
+    , lens
+    , linear
+    , massiv
+    , massiv-io
+    , optparse-applicative
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , semigroups
+    , streaming
+    , streaming-bytestring
+    , transformers
+    , vector
+    , vector-th-unbox
+  default-language: Haskell2010
+
 executable spheres
   main-is: spheres.hs
   other-modules:

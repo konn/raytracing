@@ -125,6 +125,17 @@ executables:
     dependencies:
     - raytracing
 
+  metals-and-glasses:
+    main:                metals-and-glasses.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -O2
+    - -with-rtsopts=-N
+    dependencies:
+    - raytracing
+
 tests:
   raytracing-test:
     main:                Spec.hs
