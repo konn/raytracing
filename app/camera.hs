@@ -13,6 +13,7 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (guard, (<=<))
+import Control.Monad.ST.Strict (ST)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
@@ -37,11 +38,13 @@ import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
+import RayTracing.BVH
 import RayTracing.Camera
-import RayTracing.Object
+import RayTracing.Object hiding (Scene, rayColour)
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
+import System.Random.Stateful (STGenM, applySTGen, runSTGen_)
 import Text.Read (readMaybe)
 
 main :: IO ()
@@ -236,7 +239,8 @@ mkImage :: RandomGen g => g -> Options -> WordImage
 mkImage g0 opts@Options {..} =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
-      scene = mkScene opts
+      (gScene, g') = split g0
+      scene = runSTGen_ gScene $ mkScene opts
       sz = Sz2 imageHeight imageWidth
       aCamera =
         mkCamera $
@@ -248,8 +252,8 @@ mkImage g0 opts@Options {..} =
             & #viewUp .~ viewUp
             & #thinLens .~ thinLens
       antialias = case antialiasing of
-        Random -> randomSamplingAntialias g0 samplesPerPixel sz
-        Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
+        Random -> randomSamplingAntialias g' samplesPerPixel sz
+        Stencil -> stencilAntialiasing g' (integerSquareRoot samplesPerPixel) sz
    in M.computeP $
         fromDoubleImage $
           correctGamma $
@@ -261,8 +265,8 @@ mkImage g0 opts@Options {..} =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: Options -> Scene
-mkScene Options {..} =
+mkScene :: RandomGen g => Options -> STGenM g s -> ST s Scene
+mkScene Options {..} g = do
   let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
       groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
       centerMaterial = Lambertian $ MkAttn 0.1 0.2 0.5
@@ -273,21 +277,24 @@ mkScene Options {..} =
       rightRatio = MkAttn 0.8 0.6 0.2
       rightMaterial = Metal rightRatio
       rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
-   in Scene
-        { objects =
-            [ MkSomeObject ground groundMaterial
-            , MkSomeObject center centerMaterial
-            , MkSomeObject leftS leftMaterial
-            , MkSomeObject rightS rightMaterial
-            ]
-              ++ [ MkSomeObject hollowLeftSphere leftMaterial
-                 | hollow
-                 ]
-        , background = \Ray {..} ->
-            let !unitDirection = normalize rayDirection
-                !t = 0.5 * (unitDirection ^. _y + 1.0)
-             in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
-        }
+      objs =
+        [ MkSomeObject ground groundMaterial
+        , MkSomeObject center centerMaterial
+        , MkSomeObject leftS leftMaterial
+        , MkSomeObject rightS rightMaterial
+        ]
+          ++ [ MkSomeObject hollowLeftSphere leftMaterial
+             | hollow
+             ]
+  objects <- applySTGen (fromObjects objs) g
+  pure
+    Scene
+      { objects = objects
+      , background = \Ray {..} ->
+          let !unitDirection = normalize rayDirection
+              !t = 0.5 * (unitDirection ^. _y + 1.0)
+           in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+      }
 
 p3 :: (a, a, a) -> Point V3 a
 p3 (x, y, z) = P $ V3 x y z
