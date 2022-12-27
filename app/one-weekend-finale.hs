@@ -21,7 +21,7 @@ import Control.Monad.Trans.Writer.CPS
 import Data.Bifunctor qualified as Bi
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
-import Data.DList qualified as DL
+import Data.FMList qualified as FML
 import Data.Generics.Labels ()
 import Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing)
 import Data.Image.Format.PPM
@@ -47,13 +47,14 @@ import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
+import RayTracing.BVH
 import RayTracing.Camera
-import RayTracing.Object
+import RayTracing.Object hiding (Scene, SceneOf (..), rayColour)
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
 import System.Random.Orphans ()
-import System.Random.Stateful (RandomGenM, STGenM, randomRM, runSTGen_)
+import System.Random.Stateful (RandomGenM, STGenM, applyRandomGenM, randomRM, runSTGen_)
 import Text.Read (readMaybe)
 
 default ([])
@@ -287,17 +288,19 @@ mkScene g Options {} = do
       material3 = Metal $ MkAttn 0.7 0.6 0.5
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
   balls <- execWriterT generateBalls
+  let objs =
+        FML.cons
+          (MkSomeObject ground groundMaterial)
+          balls
+          <> FML.fromList
+            [ MkSomeObject sphere1 material1
+            , MkSomeObject sphere2 material2
+            , MkSomeObject sphere3 material3
+            ]
+  !bvh <- applyRandomGenM (fromObjects objs) g
   pure
     Scene
-      { objects =
-          DL.toList $
-            DL.cons
-              (MkSomeObject ground groundMaterial)
-              balls
-              <> [ MkSomeObject sphere1 material1
-                 , MkSomeObject sphere2 material2
-                 , MkSomeObject sphere3 material3
-                 ]
+      { objects = bvh
       , background = \Ray {..} ->
           let !unitDirection = normalize rayDirection
               !t = 0.5 * (unitDirection ^. _y + 1.0)
@@ -342,7 +345,7 @@ mkScene g Options {} = do
                     ]
               )
             ]
-        tell $ DL.fromList objects
+        tell $ FML.fromList objects
 
 randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation Double)
 randomAtten ran = sequenceA . pure . randomRM ran
