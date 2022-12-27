@@ -45,6 +45,7 @@ hitsBox Ray {..} MkBoundingBox {..} mtmin0 mtmax1 =
         <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
   where
     step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) = do
+      guard $ d /= 0
       let t0 :.. t1 = mkIntvl ((lb - o) / d) ((ub - o) / d)
           !tmin = StMay.maybe t0 (max t0) mtmin
           !tmax = StMay.maybe t1 (min t1) mtmax

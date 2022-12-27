@@ -63,7 +63,11 @@ main :: IO ()
 main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
-  writePPMFile outputPath $ mkImage g opts
+  let (gScene, g') = split g
+      scene = runSTGen_ gScene $ flip mkScene opts
+  putStrLn $ "- The scene of " <> show (size $ objects scene) <> " objects"
+  putStrLn $ "- Tree height = " <> show (depth $ objects scene)
+  writePPMFile outputPath $ mkImage g' opts scene
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -247,12 +251,11 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
         | mtd <- [Random, Stencil]
         ]
 
-mkImage :: RandomGen g => g -> Options -> WordImage
-mkImage g0 opts@Options {..} =
+mkImage :: RandomGen g => g -> Options -> Scene -> WordImage
+mkImage g0 Options {..} scene =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
-      (gScene, gAlias) = split g0
-      scene = runSTGen_ gScene $ flip mkScene opts
+
       sz = Sz2 imageHeight imageWidth
       aCamera =
         mkCamera $
@@ -264,8 +267,8 @@ mkImage g0 opts@Options {..} =
             & #viewUp .~ viewUp
             & #thinLens .~ thinLens
       antialias = case antialiasing of
-        Random -> randomSamplingAntialias gAlias samplesPerPixel sz
-        Stencil -> stencilAntialiasing gAlias (integerSquareRoot samplesPerPixel) sz
+        Random -> randomSamplingAntialias g0 samplesPerPixel sz
+        Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
    in M.computeP $
         fromDoubleImage $
           correctGamma $
