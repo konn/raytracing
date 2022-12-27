@@ -37,8 +37,8 @@ data Object shape material = Object
 instance Hittable shape => Hittable (Object shape mat) where
   hitWithin = hitWithin . shape
   {-# INLINE hitWithin #-}
-  doesHitWithin = doesHitWithin . shape
-  {-# INLINE doesHitWithin #-}
+  boundingBox = boundingBox . shape
+  {-# INLINE boundingBox #-}
 
 instance Material mat => Material (Object shape mat) where
   scatter = scatter . material

@@ -14,16 +14,17 @@ module RayTracing.Object.Shape (
 ) where
 
 import Control.Arrow ((&&&))
+import Control.Monad (join)
 import Data.FMList (FMList)
 import Data.List (foldl')
-import Data.Maybe (isJust)
-import Data.Semigroup (Any (..))
 import Data.Strict qualified as Strict
 import Data.Strict.Maybe qualified as StM
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
 import Linear.Direction
+import RIO (foldMapM)
+import RayTracing.BoundingBox
 import RayTracing.Ray (Ray (..))
 
 data HitRecord = Hit
@@ -52,10 +53,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime =
 
 class Hittable obj where
   hitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Maybe HitRecord
-
-  doesHitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Bool
-  {-# INLINE doesHitWithin #-}
-  doesHitWithin = fmap (fmap (fmap isJust)) . hitWithin
+  boundingBox :: obj -> Maybe BoundingBox
 
 inRange :: Ord a => Maybe a -> Maybe a -> a -> Bool
 {-# INLINE inRange #-}
@@ -78,12 +76,10 @@ data SomeHittable where
   MkSomeHittable :: Hittable obj => obj -> SomeHittable
 
 instance Hittable SomeHittable where
-  hitWithin =
-    \case (MkSomeHittable obj) -> hitWithin obj
+  hitWithin = \case (MkSomeHittable obj) -> hitWithin obj
   {-# INLINE hitWithin #-}
-  doesHitWithin =
-    \case (MkSomeHittable obj) -> doesHitWithin obj
-  {-# INLINE doesHitWithin #-}
+  boundingBox = \case (MkSomeHittable obj) -> boundingBox obj
+  {-# INLINE boundingBox #-}
 
 data NearestRecord obj = NearestRecord
   { object :: !obj
@@ -121,5 +117,6 @@ withNearestHitWithin tmin tmax ray =
 instance (Foldable t, Hittable obj) => Hittable (FoldHittables t obj) where
   hitWithin obj tmin tmax ray = fst <$> withNearestHitWithin tmin tmax ray obj
   {-# INLINE hitWithin #-}
-  doesHitWithin = fmap (fmap $ fmap getAny) . foldMap (fmap (fmap $ fmap Any) . doesHitWithin)
-  {-# INLINE doesHitWithin #-}
+  boundingBox (Hittables objs) =
+    join $ foldMapM (fmap Just . boundingBox) objs
+  {-# INLINE boundingBox #-}

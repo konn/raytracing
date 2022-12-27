@@ -31,6 +31,8 @@ library
       Data.Image.Types
       Linear.Angle
       Linear.Direction
+      RayTracing.BoundingBox
+      RayTracing.BVH
       RayTracing.Camera
       RayTracing.Object
       RayTracing.Object.Material
@@ -54,6 +56,7 @@ library
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -68,6 +71,7 @@ library
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -88,6 +92,7 @@ executable blue-to-white
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -103,6 +108,7 @@ executable blue-to-white
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -123,6 +129,7 @@ executable camera
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -139,6 +146,7 @@ executable camera
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -159,6 +167,7 @@ executable diffuse
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -174,6 +183,7 @@ executable diffuse
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -194,6 +204,7 @@ executable gradient-with-simple-sphere
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -209,6 +220,7 @@ executable gradient-with-simple-sphere
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -229,6 +241,7 @@ executable metal-spheres
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -244,6 +257,7 @@ executable metal-spheres
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -264,6 +278,7 @@ executable metals-and-glasses
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -279,6 +294,7 @@ executable metals-and-glasses
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -299,6 +315,7 @@ executable one-weekend-finale
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -315,6 +332,7 @@ executable one-weekend-finale
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -335,6 +353,7 @@ executable spheres
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -350,6 +369,7 @@ executable spheres
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -370,6 +390,7 @@ executable spheres-antialias
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -385,6 +406,7 @@ executable spheres-antialias
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
 
@@ -406,6 +428,7 @@ test-suite raytracing-test
     , fmlist
     , foldl
     , generic-lens
+    , hybrid-vectors
     , integer-roots
     , lens
     , linear
@@ -421,5 +444,6 @@ test-suite raytracing-test
     , strict
     , transformers
     , vector
+    , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010

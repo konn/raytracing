@@ -9,6 +9,7 @@ import GHC.Generics
 import Linear
 import Linear.Affine
 import Linear.Direction
+import RayTracing.BoundingBox
 import RayTracing.Object.Shape
 import RayTracing.Ray
 
@@ -33,3 +34,9 @@ instance Hittable Sphere where
     let p = rayAt hitTime r
         n = unsafeDir $ (p .-. center) ^/ radius
     pure $ mkHitWithOutwardNormal rayDirection p n hitTime
+  boundingBox Sphere {..} =
+    Just
+      MkBoundingBox
+        { lowerBound = center .-^ pure radius
+        , upperBound = center .+^ pure radius
+        }

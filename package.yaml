@@ -29,6 +29,7 @@ dependencies:
 - fmlist
 - foldl
 - generic-lens
+- hybrid-vectors
 - integer-roots
 - lens
 - linear
@@ -43,6 +44,7 @@ dependencies:
 - strict
 - transformers
 - vector
+- vector-algorithms
 - vector-th-unbox
 
 ghc-options:
