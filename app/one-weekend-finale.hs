@@ -327,13 +327,13 @@ mkScene g Options {} = do
                   <*> randomRM (0, 0.5) g
               )
             ,
-              ( 0.75
+              ( 0.1
               , do
                   glass <- Dielectric <$> randomRM (1.5, 1.7) g
                   pure [MkSomeObject sphere glass]
               )
             ,
-              ( 0.75
+              ( 0.05
               , do
                   glass <- Dielectric <$> randomRM (1.5, 1.7) g
                   pure
