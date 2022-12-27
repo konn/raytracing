@@ -265,8 +265,8 @@ mkImage g0 opts@Options {..} =
       antialias = case antialiasing of
         Random -> randomSamplingAntialias gAlias samplesPerPixel sz
         Stencil -> stencilAntialiasing gAlias (integerSquareRoot samplesPerPixel) sz
-   in fromDoubleImage $
-        M.computeP $
+   in M.computeP $
+        fromDoubleImage $
           correctGamma $
             antialias $ \g ->
               curry $
@@ -290,12 +290,14 @@ mkScene g Options {} = do
   pure
     Scene
       { objects =
-          [ MkSomeObject ground groundMaterial
-          , MkSomeObject sphere1 material1
-          , MkSomeObject sphere2 material2
-          , MkSomeObject sphere3 material3
-          ]
-            ++ DL.toList balls
+          DL.toList $
+            DL.cons
+              (MkSomeObject ground groundMaterial)
+              balls
+              <> [ MkSomeObject sphere1 material1
+                 , MkSomeObject sphere2 material2
+                 , MkSomeObject sphere3 material3
+                 ]
       , background = \Ray {..} ->
           let !unitDirection = normalize rayDirection
               !t = 0.5 * (unitDirection ^. _y + 1.0)

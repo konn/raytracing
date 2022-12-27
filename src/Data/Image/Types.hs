@@ -119,8 +119,11 @@ type DoubleImage = Matrix U (Pixel Double)
 -- | Matrix of pixel, 0 to 255
 type WordImage = Matrix U (Pixel Word8)
 
-fromDoubleImage :: DoubleImage -> WordImage
-fromDoubleImage = M.compute . M.map (fmap $ floor . (255.999 *))
+fromDoubleImage ::
+  M.Source r (Pixel Double) =>
+  M.Matrix r (Pixel Double) ->
+  M.Matrix M.D (Pixel Word8)
+fromDoubleImage = M.map (fmap $ floor . (255.999 *))
 
 width, height :: Size r => Matrix r f -> Int
 width = M.size >>> \case (Sz2 _ w) -> w
@@ -129,8 +132,8 @@ height = M.size >>> \case (Sz2 h _) -> h
 -- | almost same as makeArray, but places origin at the lower-left instead of upper-left.
 generateImage :: Sz2 -> (Ix2 -> Pixel Double) -> WordImage
 generateImage sz =
-  fromDoubleImage
-    . M.computeP
+  M.computeP
+    . fromDoubleImage
     . M.reverse M.Dim2
     . M.makeArray @M.D M.Par sz
 

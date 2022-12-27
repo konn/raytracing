@@ -75,21 +75,22 @@ stencilAntialiasing ::
 stencilAntialiasing g0 stencilSize (M.Sz2 h w) f =
   let !w' = stencilSize * w
       !h' = stencilSize * h
-   in M.reverse M.Dim2 $
+   in M.delay $
         M.computeP @M.U $
           M.downsample (M.Stride (stencilSize :. stencilSize)) $
-            M.computeP @M.U $
-              M.mapStencil M.Reflect (M.avgStencil $ M.Sz2 stencilSize stencilSize) $
-                view _3 $
-                  M.generateSplitSeedArray @M.U
-                    M.defRowMajorUnbalanced
-                    g0
-                    (pure . split)
-                    M.Par
-                    (M.Sz2 h' w')
-                    ( const $ \(M.Ix2 j i) ->
-                        pure <<< flip runSTGen \g ->
-                          let u = fromIntegral i / (fromIntegral w' - 1)
-                              v = fromIntegral j / (fromIntegral h' - 1)
-                           in f g u v
-                    )
+            M.reverse M.Dim2 $
+              M.dropWindow $
+                M.mapStencil M.Reflect (M.avgStencil $ M.Sz2 stencilSize stencilSize) $
+                  view _3 $
+                    M.generateSplitSeedArray @M.U
+                      M.defRowMajorUnbalanced
+                      g0
+                      (pure . split)
+                      M.Par
+                      (M.Sz2 h' w')
+                      ( const $ \(M.Ix2 j i) ->
+                          pure <<< flip runSTGen \g ->
+                            let u = fromIntegral i / (fromIntegral w' - 1)
+                                v = fromIntegral j / (fromIntegral h' - 1)
+                             in f g u v
+                      )

@@ -150,8 +150,8 @@ mkImage g0 opts@Options {..} =
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
-   in fromDoubleImage $
-        M.computeP $
+   in M.computeP $
+        fromDoubleImage $
           correctGamma $
             antialias $ \g ->
               curry $

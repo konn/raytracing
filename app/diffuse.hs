@@ -139,8 +139,8 @@ mkImage g0 opts@Options {..} =
         floor $
           fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
       scene = mkScene opts
-   in fromDoubleImage $
-        M.computeP $
+   in M.computeP $
+        fromDoubleImage $
           correctGamma $
             M.reverse M.Dim2 $
               M.map getAvg $

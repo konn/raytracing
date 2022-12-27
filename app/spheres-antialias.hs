@@ -48,8 +48,8 @@ getAvg (Avg cnt total) = total ^/ fromIntegral cnt
 
 mkImage :: RandomGen g => g -> WordImage
 mkImage g =
-  fromDoubleImage
-    $ M.computeP
+  M.computeP
+    $ fromDoubleImage
     $ M.reverse M.Dim2
     $ M.map getAvg
     $ M.foldInner

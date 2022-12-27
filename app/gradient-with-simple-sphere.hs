@@ -32,7 +32,7 @@ anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->
 
 colorRay :: RayColor
 colorRay r@Ray {..}
-  | Just Hit {..} <- hits aSphere r  =
+  | Just Hit {..} <- hitWithin aSphere Nothing Nothing r =
       let n = normalize $ rayAt hitTime r .-. center aSphere
        in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =
