@@ -27,7 +27,6 @@ library
   exposed-modules:
       Data.Avg
       Data.Image.Antialiasing
-      Data.Image.Format.PPM
       Data.Image.Types
       Linear.Angle
       Linear.Direction

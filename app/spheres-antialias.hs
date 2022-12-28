@@ -7,10 +7,10 @@ module Main (main) where
 import Control.Lens
 import Data.Avg
 import Data.Generics.Labels ()
-import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Massiv.Array.IO (writeImage)
 import Linear
 import Linear.Affine (Point (..))
 import Linear.Direction
@@ -25,7 +25,7 @@ import System.Random.Stateful (runSTGen_)
 main :: IO ()
 main = do
   g <- getStdGen
-  writePPMFile ("workspace" </> "spheres-antialias.ppm") $ mkImage g
+  writeImage ("workspace" </> "spheres-antialias.png") $ mkImage g
 
 samplesPerPixel :: Int
 samplesPerPixel = 100

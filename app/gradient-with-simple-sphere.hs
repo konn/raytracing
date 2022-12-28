@@ -4,9 +4,9 @@
 module Main (main) where
 
 import Control.Lens
-import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Ix2 (..), Sz (..))
+import Data.Massiv.Array.IO (writeImage)
 import Linear
 import Linear.Affine (Affine (..), Point (..))
 import RIO.FilePath ((</>))
@@ -15,7 +15,7 @@ import RayTracing.Object.Sphere
 import RayTracing.Ray
 
 main :: IO ()
-main = writePPMFile ("workspace" </> "blue-to-white-with-simple-sphere.ppm") anImage
+main = writeImage ("workspace" </> "blue-to-white-with-simple-sphere.png") anImage
 
 anImage :: WordImage
 anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->

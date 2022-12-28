@@ -15,10 +15,10 @@ import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
 import Data.Generics.Labels ()
 import Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing)
-import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Massiv.Array.IO (writeImage)
 import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
@@ -37,7 +37,7 @@ main :: IO ()
 main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- getStdGen
-  writePPMFile outputPath $ mkImage g opts
+  writeImage outputPath $ mkImage g opts
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -107,7 +107,7 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.metavar "PATH"
             <> Opt.help "Output path"
             <> Opt.showDefault
-            <> Opt.value ("workspace" </> "metal-spheres.ppm")
+            <> Opt.value ("workspace" </> "metal-spheres.png")
       fuzzy <-
         Opt.switch $
           Opt.long "fuzzy"
@@ -150,7 +150,7 @@ mkImage g0 opts@Options {..} =
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
-   in M.computeP $ 
+   in M.computeP $
         fromDoubleImage $
           correctGamma $
             antialias $ \g u v ->

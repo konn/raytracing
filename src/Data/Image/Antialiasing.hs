@@ -33,24 +33,23 @@ randomSamplingAntialias ::
   ) ->
   M.Matrix M.D (Pixel cs Double)
 randomSamplingAntialias g0 samples (M.Sz2 h w) f =
-  M.reverse M.Dim2 $
-    M.map getAvg $
-      M.foldInner $
-        view _3 $
-          M.generateSplitSeedArray @M.U
-            M.defRowMajorUnbalanced
-            g0
-            (pure . split)
-            M.Par
-            (M.Sz3 h w samples)
-            ( \_ (M.Ix3 j i _) ->
-                pure <<< flip runSTGen \g -> do
-                  !dx <- randomRM (-1.0, 1.0) g
-                  !dy <- randomRM (-1.0, 1.0) g
-                  let !u = (fromIntegral i + dx) / (fromIntegral w - 1)
-                      !v = (fromIntegral j + dy) / (fromIntegral h - 1)
-                  Avg 1 <$> f g u v
-            )
+  M.map getAvg $
+    M.foldInner $
+      view _3 $
+        M.generateSplitSeedArray @M.U
+          M.defRowMajorUnbalanced
+          g0
+          (pure . split)
+          M.Par
+          (M.Sz3 h w samples)
+          ( \_ (M.Ix3 j i _) ->
+              pure <<< flip runSTGen \g -> do
+                !dx <- randomRM (-1.0, 1.0) g
+                !dy <- randomRM (-1.0, 1.0) g
+                let !u = (fromIntegral i + dx) / (fromIntegral w - 1)
+                    !v = (fromIntegral (h - j - 1) + dy) / (fromIntegral h - 1)
+                Avg 1 <$> f g u v
+          )
 
 stencilAntialiasing ::
   (RandomGen g, ColorModel cs Double) =>
@@ -78,19 +77,18 @@ stencilAntialiasing g0 stencilSize (M.Sz2 h w) f =
    in M.delay $
         M.computeP @M.U $
           M.downsample (M.Stride (stencilSize :. stencilSize)) $
-            M.reverse M.Dim2 $
-              M.dropWindow $
-                M.mapStencil M.Reflect (M.avgStencil $ M.Sz2 stencilSize stencilSize) $
-                  view _3 $
-                    M.generateSplitSeedArray @M.U
-                      M.defRowMajorUnbalanced
-                      g0
-                      (pure . split)
-                      M.Par
-                      (M.Sz2 h' w')
-                      ( const $ \(M.Ix2 j i) ->
-                          pure <<< flip runSTGen \g ->
-                            let u = fromIntegral i / (fromIntegral w' - 1)
-                                v = fromIntegral j / (fromIntegral h' - 1)
-                             in f g u v
-                      )
+            M.dropWindow $
+              M.mapStencil M.Reflect (M.avgStencil $ M.Sz2 stencilSize stencilSize) $
+                view _3 $
+                  M.generateSplitSeedArray @M.U
+                    M.defRowMajorUnbalanced
+                    g0
+                    (pure . split)
+                    M.Par
+                    (M.Sz2 h' w')
+                    ( const $ \(M.Ix2 j i) ->
+                        pure <<< flip runSTGen \g ->
+                          let u = fromIntegral i / (fromIntegral w' - 1)
+                              v = fromIntegral (h' - j - 1) / (fromIntegral h' - 1)
+                           in f g u v
+                    )

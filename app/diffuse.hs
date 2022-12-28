@@ -16,10 +16,10 @@ import Data.Avg
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
 import Data.Generics.Labels ()
-import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Massiv.Array.IO hiding (PixelRGB)
 import Data.Trie qualified as Trie
 import GHC.Generics (Generic)
 import Linear
@@ -38,7 +38,7 @@ main :: IO ()
 main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- getStdGen
-  writePPMFile outputPath $ mkImage g opts
+  writeImage outputPath $ mkImage g opts
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -112,7 +112,7 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.metavar "PATH"
             <> Opt.help "Output path"
             <> Opt.showDefault
-            <> Opt.value ("workspace" </> "diffuse.ppm")
+            <> Opt.value ("workspace" </> "diffuse.png")
       pure Options {..}
 
 parseDiffusion :: String -> Maybe Diffusion
@@ -139,7 +139,7 @@ mkImage g0 opts@Options {..} =
         floor $
           fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
       scene = mkScene opts
-   in M.computeP $ 
+   in M.computeP $
         fromDoubleImage $
           correctGamma $
             M.reverse M.Dim2 $

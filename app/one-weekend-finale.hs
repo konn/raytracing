@@ -24,12 +24,12 @@ import Data.Char qualified as C
 import Data.FMList qualified as FML
 import Data.Generics.Labels ()
 import Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing)
-import Data.Image.Format.PPM
 import Data.Image.Types
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
+import Data.Massiv.Array.IO (writeImage)
 import Data.Monoid (Alt (..))
 import Data.Scientific qualified as S
 import Data.Strict.Tuple (Pair (..))
@@ -67,7 +67,7 @@ main = do
       scene = runSTGen_ gScene $ flip mkScene opts
   putStrLn $ "- The scene of " <> show (size $ objects scene) <> " objects"
   putStrLn $ "- Tree height = " <> show (depth $ objects scene)
-  writePPMFile outputPath $ mkImage g' opts scene
+  writeImage outputPath $ mkImage g' opts scene
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -144,7 +144,7 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.metavar "PATH"
             <> Opt.help "Output path"
             <> Opt.showDefault
-            <> Opt.value ("workspace" </> "finale.ppm")
+            <> Opt.value ("workspace" </> "finale.png")
       antialiasing <-
         Opt.option (Opt.maybeReader parseAntialising) $
           Opt.long "antialias"
