@@ -34,11 +34,11 @@ colorRay :: RayColor
 colorRay r@Ray {..}
   | Just Hit {..} <- hitWithin aSphere Nothing Nothing r =
       let n = normalize $ rayAt hitTime r .-. center aSphere
-       in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
+       in 0.5 *^ PixelRGB (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =
       let !unitDirection = normalize rayDirection
           !t = 0.5 * (unitDirection ^. _y + 1.0)
-       in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+       in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
 
 aSphere :: Sphere
 aSphere = Sphere {center = P $ V3 0 0 (-1), radius = 0.5}

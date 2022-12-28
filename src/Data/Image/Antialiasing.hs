@@ -14,7 +14,7 @@ import Data.Massiv.Array qualified as M
 import System.Random.Stateful
 
 randomSamplingAntialias ::
-  RandomGen g =>
+  (RandomGen g, ColorModel cs Double) =>
   g ->
   Int ->
   Sz2 ->
@@ -29,9 +29,9 @@ randomSamplingAntialias ::
     Double ->
     -- Height ratio [0, 1]
     Double ->
-    ST s (Pixel Double)
+    ST s (Pixel cs Double)
   ) ->
-  M.Matrix M.D (Pixel Double)
+  M.Matrix M.D (Pixel cs Double)
 randomSamplingAntialias g0 samples (M.Sz2 h w) f =
   M.reverse M.Dim2 $
     M.map getAvg $
@@ -53,7 +53,7 @@ randomSamplingAntialias g0 samples (M.Sz2 h w) f =
             )
 
 stencilAntialiasing ::
-  RandomGen g =>
+  (RandomGen g, ColorModel cs Double) =>
   g ->
   -- | Stencil size
   Int ->
@@ -69,9 +69,9 @@ stencilAntialiasing ::
     Double ->
     -- Height ratio [0, 1]
     Double ->
-    ST s (Pixel Double)
+    ST s (Pixel cs Double)
   ) ->
-  M.Matrix M.D (Pixel Double)
+  M.Matrix M.D (Pixel cs Double)
 stencilAntialiasing g0 stencilSize (M.Sz2 h w) f =
   let !w' = stencilSize * w
       !h' = stencilSize * h

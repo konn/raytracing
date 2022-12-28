@@ -307,7 +307,7 @@ mkScene g Options {} = do
       , background = \Ray {..} ->
           let !unitDirection = normalize rayDirection
               !t = 0.5 * (unitDirection ^. _y + 1.0)
-           in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+           in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
       }
   where
     generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
@@ -350,7 +350,7 @@ mkScene g Options {} = do
             ]
         tell $ FML.fromList objects
 
-randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation Double)
+randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation RGB Double)
 randomAtten ran = sequenceA . pure . randomRM ran
 
 chooseM :: RandomGenM g r m => g -> NonEmpty (Double, m a) -> m a

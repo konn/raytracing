@@ -23,7 +23,6 @@ module RayTracing.Object.Material (
   Dielectric (..),
 ) where
 
-import Control.Applicative (Applicative (..))
 import Control.Lens ((^.))
 import Control.Monad (guard, join)
 import Control.Monad.Trans.Class (MonadTrans (..))
@@ -33,9 +32,9 @@ import Data.Generics.Labels ()
 import Data.Image.Types
 import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
-import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Generics (Generic)
+import Graphics.ColorModel
 import Linear
 import Linear.Direction
 import RayTracing.Object.Shape (HitRecord (..))
@@ -44,25 +43,41 @@ import System.Random.Orphans ()
 import System.Random.Stateful (RandomGenM, applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
 
-newtype Attenuation a = Attenuation {getAttenuation :: Pixel a}
-  deriving (Show, Eq, Ord, Generic, Functor, Foldable, Traversable)
-  deriving newtype (Num, Fractional, Applicative)
+newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
+  deriving (Generic)
+  deriving newtype (Num, Fractional)
 
-pattern MkAttn :: a -> a -> a -> Attenuation a
+deriving instance Show (Color cs a) => Show (Attenuation cs a)
+
+deriving instance Eq (Color cs a) => Eq (Attenuation cs a)
+
+deriving instance Ord (Color cs a) => Ord (Attenuation cs a)
+
+deriving instance Functor (Color cs) => Functor (Attenuation cs)
+
+deriving instance Foldable (Color cs) => Foldable (Attenuation cs)
+
+deriving instance Traversable (Color cs) => Traversable (Attenuation cs)
+
+deriving newtype instance Applicative (Color cs) => Applicative (Attenuation cs)
+
+deriving newtype instance Additive (Color cs) => Additive (Attenuation cs)
+
+pattern MkAttn :: a -> a -> a -> Attenuation RGB a
 pattern MkAttn {redRatio, greenRatio, blueRatio} =
-  Attenuation (Pixel redRatio greenRatio blueRatio)
+  Attenuation (ColorRGB redRatio greenRatio blueRatio)
 
 derivingUnbox
   "Attenuation"
-  [t|forall a. U.Unbox a => Attenuation a -> Pixel a|]
+  [t|forall cs a. (ColorModel cs a) => Attenuation cs a -> Pixel cs a|]
   [|coerce|]
   [|coerce|]
 
 infixl 7 .*
 
-(.*) :: Num a => Attenuation a -> Pixel a -> Pixel a
+(.*) :: (ColorModel cs a) => Attenuation cs a -> Pixel cs a -> Pixel cs a
 {-# INLINE (.*) #-}
-(.*) = liftA2 (*) . coerce
+(.*) = (*) . coerce
 
 data SomeMaterial where
   MkSomeMaterial :: Material a => a -> SomeMaterial
@@ -72,9 +87,9 @@ instance Material SomeMaterial where
   {-# INLINE scatter #-}
 
 class Material a where
-  scatter :: RandomGenM g r m => a -> HitRecord -> Ray -> g -> MaybeT m (Attenuation Double, Ray)
+  scatter :: RandomGenM g r m => a -> HitRecord -> Ray -> g -> MaybeT m (Attenuation RGB Double, Ray)
 
-newtype Lambertian = Lambertian {albedo :: Attenuation Double}
+newtype Lambertian = Lambertian {albedo :: Attenuation RGB Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material Lambertian where
@@ -92,7 +107,7 @@ instance Material Lambertian where
             }
     pure (albedo, scattered)
 
-newtype Hemispheric = Hemispheric {albedo :: Attenuation Double}
+newtype Hemispheric = Hemispheric {albedo :: Attenuation RGB Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material Hemispheric where
@@ -110,7 +125,7 @@ instance Material Hemispheric where
             }
     pure (albedo, scattered)
 
-newtype Metal = Metal {albedo :: Attenuation Double}
+newtype Metal = Metal {albedo :: Attenuation RGB Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material Metal where
@@ -121,7 +136,7 @@ instance Material Metal where
     pure (albedo, scatterred)
   {-# INLINE scatter #-}
 
-data FuzzyMetal = FuzzyMetal {albedo :: Attenuation Double, fuzz :: !Double}
+data FuzzyMetal = FuzzyMetal {albedo :: Attenuation RGB Double, fuzz :: !Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material FuzzyMetal where

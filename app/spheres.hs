@@ -35,11 +35,11 @@ colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
   | Just Hit {..} <- hitWithin obj (Just 0) Nothing r  =
       let n = unDir normal
-       in 0.5 *^ Pixel (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
+       in 0.5 *^ PixelRGB (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =
       let !unitDirection = normalize rayDirection
           !t = 0.5 * (unitDirection ^. _y + 1.0)
-       in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+       in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
 
 world :: [Sphere]
 world = [sphere1, sphere2]

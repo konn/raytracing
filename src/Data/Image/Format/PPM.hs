@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Data.Image.Format.PPM (formatPPM, writePPMFile, exampleGradient) where
 
@@ -23,12 +22,12 @@ formatPPMHeader img =
   let M.Sz2 !h !w = M.size img
    in "P3\n" <> BB.intDec w <> " " <> BB.intDec h <> "\n255\n"
 
-formatPixel :: Pixel Word8 -> BB.Builder
-formatPixel Pixel {..} =
+formatPixel :: Pixel RGB Word8 -> BB.Builder
+formatPixel (PixelRGB red green blue) =
   BB.word8Dec red <> " " <> BB.word8Dec green <> " " <> BB.word8Dec blue <> "\n"
 
 exampleGradient :: WordImage
 exampleGradient = generateImage (M.Sz2 256 256) $ \(j :. i) ->
-  Pixel (fromIntegral i / 255) (fromIntegral j / 255) 0.25
+  PixelRGB (fromIntegral i / 255) (fromIntegral j / 255) 0.25
 
 -- >>> writePPMFile "workspace/grad.ppm" exampleGradient

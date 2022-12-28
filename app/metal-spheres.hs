@@ -150,7 +150,7 @@ mkImage g0 opts@Options {..} =
       antialias = case antialiasing of
         Random -> randomSamplingAntialias g0 samplesPerPixel sz
         Stencil -> stencilAntialiasing g0 (integerSquareRoot samplesPerPixel) sz
-   in M.computeP $
+   in M.computeP $ 
         fromDoubleImage $
           correctGamma $
             antialias $ \g u v ->
@@ -186,7 +186,7 @@ mkScene Options {..} =
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)
-             in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+             in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
         }
 
 p3 :: (a, a, a) -> Point V3 a

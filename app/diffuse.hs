@@ -139,7 +139,7 @@ mkImage g0 opts@Options {..} =
         floor $
           fromIntegral imageWidth / defaultCameraConfig ^. #aspectRatio
       scene = mkScene opts
-   in M.computeP $
+   in M.computeP $ 
         fromDoubleImage $
           correctGamma $
             M.reverse M.Dim2 $
@@ -172,7 +172,7 @@ mkScene Options {..} =
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)
-             in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+             in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
         }
 
 world :: [Sphere]

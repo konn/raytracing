@@ -32,7 +32,7 @@ colorRay :: RayColor
 colorRay Ray {..} =
   let !unitDirection = normalize rayDirection
       !t = 0.5 * (unitDirection ^. _y + 1.0)
-   in lerp t (Pixel 0.5 0.7 1.0) (Pixel 1.0 1.0 1.0)
+   in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
 
 aspectRatio :: Double
 aspectRatio = 16.0 / 9.0

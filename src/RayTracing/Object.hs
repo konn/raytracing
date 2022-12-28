@@ -56,7 +56,7 @@ pattern MkSomeObject shape mat = Object (MkSomeHittable shape) (MkSomeMaterial m
 
 data SceneOf sh mat = Scene
   { objects :: ![Object sh mat]
-  , background :: !(Ray -> Pixel Double)
+  , background :: !(Ray -> Pixel RGB Double)
   }
   deriving (Generic, Generic1, Functor, Foldable, Traversable)
 
@@ -71,7 +71,7 @@ rayColour ::
   g ->
   Int ->
   Ray ->
-  m (Pixel Double)
+  m (Pixel RGB Double)
 rayColour eps Scene {..} g = go
   where
     go !depth r

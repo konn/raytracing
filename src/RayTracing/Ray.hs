@@ -17,4 +17,4 @@ data Ray = Ray
 rayAt :: Double -> Ray -> Point V3 Double
 rayAt t Ray {..} = rayOrigin .+^ t *^ rayDirection
 
-type RayColor = Ray -> Pixel Double
+type RayColor = Ray -> Pixel RGB Double

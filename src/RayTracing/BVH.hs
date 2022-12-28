@@ -24,7 +24,7 @@ import Control.Lens (view)
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict
 import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.Image.Types (Pixel)
+import Data.Image.Types (Pixel, RGB)
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
 import Data.Vector qualified as V
@@ -177,7 +177,7 @@ type Scene = BVHScene' SomeHittable SomeMaterial
 
 data BVHScene' sh mat = Scene
   { objects :: !(BVH (Object sh mat))
-  , background :: !(Ray -> Pixel Double)
+  , background :: !(Ray -> Pixel RGB Double)
   }
   deriving (Generic, Generic1, Functor, Foldable)
 
@@ -192,7 +192,7 @@ rayColour ::
   g ->
   Int ->
   Ray ->
-  m (Pixel Double)
+  m (Pixel RGB Double)
 {-# INLINE rayColour #-}
 rayColour eps Scene {..} g = go
   where
