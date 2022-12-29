@@ -18,7 +18,7 @@ import Data.Ord (clamp)
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
-import RIO (MonadIO, fromMaybe)
+import RIO (MonadIO)
 import RayTracing.Texture
 
 newtype ImageTexture' r = ImageTexture {image :: Image r RGB Double}
