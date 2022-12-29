@@ -1,0 +1,35 @@
+name: Build
+on: push
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - uses: haskell/actions/setup@v2
+      with: 
+        ghc-version: 9.2.5
+        cabal-version: 3.8.1.0
+    - uses: actions/cache@v3
+      name: Cache ~/.cabal/store
+      with:
+        key: cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}
+        restore-keys: |
+          cabal-store-9.2.5-
+
+        path: ~/.cabal/store
+    - uses: actions/cache@v3
+      name: Cache dist-newstyle
+      with:
+        key: cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}-${{ hashFiles("**/*.hs") }}
+        restore-keys: |
+          cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}-
+          cabal-store-9.2.5-
+        path: dist-newstyle
+    - name: Cabal configure
+      run: cabal v2-configure --disable-optimization
+    - name: Cabal update
+      run: cabal v2-update
+    - name: Build
+      run: cabal v2-build

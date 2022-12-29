@@ -39,6 +39,7 @@ library
       RayTracing.Object.Sphere
       RayTracing.Ray
       RayTracing.Texture
+      RayTracing.Texture.Image
       RayTracing.Texture.Noise.Perlin
       System.Random.Orphans
       System.Random.Utils

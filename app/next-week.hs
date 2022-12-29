@@ -31,6 +31,7 @@ import Data.List.NonEmpty qualified as NE
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
 import Data.Massiv.Array.IO (writeImage)
+import Data.Maybe (fromMaybe)
 import Data.Monoid (Alt (..))
 import Data.Scientific qualified as S
 import Data.Strict.Tuple (Pair (..))
@@ -47,6 +48,7 @@ import Math.NumberTheory.Roots (integerSquareRoot)
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
+import RIO.FilePath qualified as FP
 import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
 import RayTracing.BVH
@@ -70,7 +72,17 @@ main = do
       theScene = runSTGen_ gScene (mkScene scene opts)
   putStrLn $ "- The scene of " <> show (size $ objects theScene) <> " objects"
   putStrLn $ "- Tree height = " <> show (depth $ objects theScene)
-  writeImage outputPath $ mkImage g' opts theScene
+  writeImage (fromMaybe (toOutputPath scene) outputPath) $ mkImage g' opts theScene
+
+toOutputPath :: SceneName -> FilePath
+toOutputPath RandomScene = workspace </> "final" FP.<.> defaultFormat
+toOutputPath TwoSpheres = workspace </> "two-spheres" FP.<.> defaultFormat
+
+defaultFormat :: String
+defaultFormat = "png"
+
+workspace :: FilePath
+workspace = "workspace"
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -83,7 +95,7 @@ data Options = Options
   , samplesPerPixel :: !Int
   , imageWidth :: !Int
   , epsilon :: !Double
-  , outputPath :: !FilePath
+  , outputPath :: !(Maybe FilePath)
   , antialiasing :: !Antialiasing
   , aspectRatio :: !Double
   , verticalFieldOfView :: !(Angle Double)
@@ -151,13 +163,12 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.showDefault
             <> Opt.help "The threshold to regard as zero"
       outputPath <-
-        Opt.strOption $
-          Opt.long "output"
-            <> Opt.short 'o'
-            <> Opt.metavar "PATH"
-            <> Opt.help "Output path"
-            <> Opt.showDefault
-            <> Opt.value ("workspace" </> "finale.png")
+        Opt.optional $
+          Opt.strOption $
+            Opt.long "output"
+              <> Opt.short 'o'
+              <> Opt.metavar "PATH"
+              <> Opt.help "Output path"
       antialiasing <-
         Opt.option (Opt.maybeReader parseAntialising) $
           Opt.long "antialias"
