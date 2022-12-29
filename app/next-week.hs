@@ -67,7 +67,7 @@ main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
   let (gScene, g') = split g
-      theScene = runSTGen_ gScene (mkScene scene)
+      theScene = runSTGen_ gScene (mkScene scene opts)
   putStrLn $ "- The scene of " <> show (size $ objects theScene) <> " objects"
   putStrLn $ "- Tree height = " <> show (depth $ objects theScene)
   writeImage outputPath $ mkImage g' opts theScene
@@ -91,6 +91,7 @@ data Options = Options
   , lookingAt :: !(Point V3 Double)
   , viewUp :: !(Dir V3 Double)
   , thinLens :: !(Maybe ThinLens)
+  , bucketSize :: !Int
   , randomSeed :: !(Maybe Int)
   , scene :: !SceneName
   }
@@ -219,6 +220,13 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             Opt.long "seed"
               <> Opt.short 'S'
               <> Opt.help "If specified, use the number as the seed for the random number"
+      bucketSize <-
+        Opt.option Opt.auto $
+          Opt.long "bucket-size"
+            <> Opt.short 'B'
+            <> Opt.value 8
+            <> Opt.showDefault
+            <> Opt.help "The maximum # of objects to store in a BVH Node"
       pure Options {..}
 
 thinLensP :: Opt.Parser ThinLens
@@ -288,8 +296,8 @@ mkImage g0 Options {..} theScene =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => SceneName -> STGenM g s -> ST s Scene
-mkScene TwoSpheres g = do
+mkScene :: RandomGen g => SceneName -> Options -> STGenM g s -> ST s Scene
+mkScene TwoSpheres Options {..} g = do
   let checker =
         Lambertian $
           CheckerTexture
@@ -301,13 +309,13 @@ mkScene TwoSpheres g = do
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
       objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
-  objects <- applyRandomGenM (fromObjectsWithBucket 4 objs) g
+  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
   pure
     Scene
       { objects
       , background = blueGradientBackground
       }
-mkScene RandomScene g = do
+mkScene RandomScene Options {..} g = do
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =
         Lambertian $
@@ -328,7 +336,7 @@ mkScene RandomScene g = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket 8 objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
   pure
     Scene
       { objects = bvh
