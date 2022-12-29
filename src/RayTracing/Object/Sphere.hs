@@ -3,6 +3,7 @@
 
 module RayTracing.Object.Sphere (Sphere (..), Hittable (..)) where
 
+import Control.Lens ((^.))
 import Control.Monad (guard)
 import Data.Foldable (find)
 import GHC.Generics
@@ -33,7 +34,10 @@ instance Hittable Sphere where
         [(-b - sqrt delta) / a, (-b + sqrt delta) / a]
     let p = rayAt hitTime r
         n = unsafeDir $ (p .-. center) ^/ radius
-    pure $ mkHitWithOutwardNormal rayDirection p n hitTime
+        !theta = acos (-p ^. _y)
+        !phi = atan2 (-p ^. _z) (p ^. _x) + pi
+        !uv = P $ V2 (phi / (2 * pi)) (theta / pi)
+    pure $ mkHitWithOutwardNormal rayDirection p n hitTime uv
   boundingBox Sphere {..} =
     Just
       MkBoundingBox

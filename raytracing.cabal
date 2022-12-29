@@ -38,6 +38,8 @@ library
       RayTracing.Object.Shape
       RayTracing.Object.Sphere
       RayTracing.Ray
+      RayTracing.Texture
+      RayTracing.Texture.Noise.Perlin
       System.Random.Orphans
       System.Random.Utils
   other-modules:
@@ -289,6 +291,44 @@ executable metals-and-glasses
     , raytracing
     , rio
     , rio-orphans
+    , semigroups
+    , strict
+    , transformers
+    , vector
+    , vector-algorithms
+    , vector-th-unbox
+  default-language: Haskell2010
+
+executable next-week
+  main-is: next-week.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      adjunctions
+    , base >=4.7 && <5
+    , bytestring
+    , bytestring-trie
+    , distributive
+    , dlist
+    , fmlist
+    , foldl
+    , generic-lens
+    , hybrid-vectors
+    , integer-roots
+    , lens
+    , linear
+    , massiv
+    , massiv-io
+    , optparse-applicative
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , scientific
     , semigroups
     , strict
     , transformers

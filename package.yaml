@@ -163,6 +163,18 @@ executables:
     - raytracing
     - scientific
 
+  next-week:
+    main:                next-week.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -O2
+    - -with-rtsopts=-N
+    dependencies:
+    - raytracing
+    - scientific
+
 tests:
   raytracing-test:
     main:                Spec.hs

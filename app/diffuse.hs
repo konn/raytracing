@@ -165,8 +165,8 @@ mkScene :: Options -> SceneOf Sphere SomeMaterial
 mkScene Options {..} =
   let diff =
         case diffusion of
-          Lambert -> MkSomeMaterial $ Lambertian 0.5
-          Hemisphere -> MkSomeMaterial $ Hemispheric 0.5
+          Lambert -> MkSomeMaterial $ Lambertian $ MkAttn 0.5 0.5 0.5
+          Hemisphere -> MkSomeMaterial $ Hemispheric $ MkAttn 0.5 0.5 0.5
    in Scene
         { objects = map (`Object` diff) world
         , background = \Ray {..} ->

@@ -9,6 +9,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoFieldSelectors #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 
 module Main (main) where
 
@@ -66,10 +67,10 @@ main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
   let (gScene, g') = split g
-      scene = runSTGen_ gScene $ flip mkScene opts
-  putStrLn $ "- The scene of " <> show (size $ objects scene) <> " objects"
-  putStrLn $ "- Tree height = " <> show (depth $ objects scene)
-  writeImage outputPath $ mkImage g' opts scene
+      theScene = runSTGen_ gScene (mkScene scene)
+  putStrLn $ "- The scene of " <> show (size $ objects theScene) <> " objects"
+  putStrLn $ "- Tree height = " <> show (depth $ objects theScene)
+  writeImage outputPath $ mkImage g' opts theScene
 
 data Diffusion = Lambert | Hemisphere
   deriving (Show, Eq, Ord, Generic)
@@ -80,7 +81,6 @@ data Antialiasing = Random | Stencil
 data Options = Options
   { cutoff :: !Int
   , samplesPerPixel :: !Int
-  , hollow :: !Bool
   , imageWidth :: !Int
   , epsilon :: !Double
   , outputPath :: !FilePath
@@ -92,13 +92,23 @@ data Options = Options
   , viewUp :: !(Dir V3 Double)
   , thinLens :: !(Maybe ThinLens)
   , randomSeed :: !(Maybe Int)
+  , scene :: !SceneName
   }
+  deriving (Show, Eq, Ord, Generic)
+
+data SceneName = RandomScene | TwoSpheres
   deriving (Show, Eq, Ord, Generic)
 
 cmdP :: Opt.ParserInfo Options
 cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusion"
   where
     p = do
+      scene <-
+        Opt.hsubparser $
+          mconcat
+            [ Opt.command "two-spheres" (Opt.info (pure TwoSpheres) $ Opt.progDesc "Two Spheres example")
+            , Opt.command "random" (Opt.info (pure RandomScene) $ Opt.progDesc "Two Spheres example")
+            ]
       cutoff <-
         fromIntegral @Natural
           <$> Opt.option
@@ -200,9 +210,6 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
               <> Opt.help "The View-Up vector of the camera"
           )
           <&> \(x, y, z) -> dir (V3 x y z)
-      hollow <-
-        Opt.flag' True (Opt.long "hollow" <> Opt.help "Makes glass ball hollow")
-          <|> not <$> Opt.switch (Opt.long "no-hollow" <> Opt.help "Makes glass ball dense")
       thinLens <-
         Opt.flag' Nothing (Opt.long "no-lens" <> Opt.help "renders without a lens")
           <|> Just <$> thinLensP
@@ -254,10 +261,9 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
         ]
 
 mkImage :: RandomGen g => g -> Options -> Scene -> WordImage
-mkImage g0 Options {..} scene =
+mkImage g0 Options {..} theScene =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
-
       sz = Sz2 imageHeight imageWidth
       aCamera =
         mkCamera $
@@ -276,14 +282,32 @@ mkImage g0 Options {..} scene =
           correctGamma $
             antialias $ \g ->
               curry $
-                rayColour epsilon scene g cutoff
+                rayColour epsilon theScene g cutoff
                   <=< getRay g aCamera . p2
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => STGenM g s -> Options -> ST s Scene
-mkScene g Options {} = do
+mkScene :: RandomGen g => SceneName -> STGenM g s -> ST s Scene
+mkScene TwoSpheres g = do
+  let checker =
+        Lambertian $
+          CheckerTexture
+            (ColorRGB 0.2 0.3 0.1)
+            (ColorRGB 0.9 0.9 0.9)
+            10
+            10
+            10
+      sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
+      sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
+      objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
+  objects <- applyRandomGenM (fromObjects objs) g
+  pure
+    Scene
+      { objects
+      , background = blueGradientBackground
+      }
+mkScene RandomScene g = do
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =
         Lambertian $
@@ -308,10 +332,7 @@ mkScene g Options {} = do
   pure
     Scene
       { objects = bvh
-      , background = \Ray {..} ->
-          let !unitDirection = normalize rayDirection
-              !t = 0.5 * (unitDirection ^. _y + 1.0)
-           in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
+      , background = blueGradientBackground
       }
   where
     generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
@@ -353,6 +374,12 @@ mkScene g Options {} = do
               )
             ]
         tell $ FML.fromList objects
+
+blueGradientBackground :: Ray -> Pixel RGB Double
+blueGradientBackground Ray {..} =
+  let !unitDirection = normalize rayDirection
+      !t = 0.5 * (unitDirection ^. _y + 1.0)
+   in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
 
 randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation RGB Double)
 randomAtten ran = sequenceA . pure . randomRM ran

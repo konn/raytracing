@@ -34,6 +34,7 @@ data HitRecord = Hit
   , hitTime :: {-# UNPACK #-} !Double
   , frontFace :: !Bool
   -- ^ 'True' if the ray is outside the object
+  , textureCoordinate :: Point V2 Double
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -43,8 +44,9 @@ mkHitWithOutwardNormal ::
   Point V3 Double ->
   Dir V3 Double ->
   Double ->
+  Point V2 Double ->
   HitRecord
-mkHitWithOutwardNormal origDir coord outNormal hitTime =
+mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
   let frontFace = origDir `dot` unDir outNormal < 0
       normal
         | frontFace = outNormal

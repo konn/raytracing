@@ -1,4 +1,4 @@
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
@@ -39,6 +39,7 @@ import Linear
 import Linear.Direction
 import RayTracing.Object.Shape (HitRecord (..))
 import RayTracing.Ray
+import RayTracing.Texture
 import System.Random.Orphans ()
 import System.Random.Stateful (RandomGenM, applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
@@ -46,6 +47,9 @@ import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere
 newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
   deriving (Generic)
   deriving newtype (Num, Fractional)
+
+deriving newtype instance
+  (cs ~ RGB, e ~ Double) => Texture (Attenuation cs e)
 
 deriving instance Show (Color cs a) => Show (Attenuation cs a)
 
@@ -89,10 +93,10 @@ instance Material SomeMaterial where
 class Material a where
   scatter :: RandomGenM g r m => a -> HitRecord -> Ray -> g -> MaybeT m (Attenuation RGB Double, Ray)
 
-newtype Lambertian = Lambertian {albedo :: Attenuation RGB Double}
+newtype Lambertian txt = Lambertian {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
 
-instance Material Lambertian where
+instance Texture txt => Material (Lambertian txt) where
   {-# INLINE scatter #-}
   scatter Lambertian {..} Hit {..} _ g = do
     d <- lift $ applyRandomGenM randomPointOnUnitSphere g
@@ -105,12 +109,12 @@ instance Material Lambertian where
                   then unDir normal
                   else sDir
             }
-    pure (albedo, scattered)
+    pure (Attenuation $ colorAt albedo textureCoordinate coord, scattered)
 
-newtype Hemispheric = Hemispheric {albedo :: Attenuation RGB Double}
+newtype Hemispheric txt = Hemispheric {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
 
-instance Material Hemispheric where
+instance Texture txt => Material (Hemispheric txt) where
   {-# INLINE scatter #-}
   scatter Hemispheric {..} Hit {..} _ g = do
     d <- lift $ applyRandomGenM (randomPointOnUnitHemisphere normal) g
@@ -123,7 +127,7 @@ instance Material Hemispheric where
                   then unDir normal
                   else sDir
             }
-    pure (albedo, scattered)
+    pure (Attenuation $ colorAt albedo textureCoordinate coord, scattered)
 
 newtype Metal = Metal {albedo :: Attenuation RGB Double}
   deriving (Show, Eq, Ord, Generic)
@@ -136,7 +140,7 @@ instance Material Metal where
     pure (albedo, scatterred)
   {-# INLINE scatter #-}
 
-data FuzzyMetal = FuzzyMetal {albedo :: Attenuation RGB Double, fuzz :: !Double}
+data FuzzyMetal = FuzzyMetal {albedo :: !(Attenuation RGB Double), fuzz :: !Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material FuzzyMetal where
