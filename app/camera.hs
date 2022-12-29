@@ -286,7 +286,7 @@ mkScene Options {..} g = do
           ++ [ MkSomeObject hollowLeftSphere leftMaterial
              | hollow
              ]
-  objects <- applySTGen (fromObjects objs) g
+  objects <- applySTGen (fromObjectsWithBucket 4 objs) g
   pure
     Scene
       { objects = objects

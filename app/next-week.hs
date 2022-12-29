@@ -301,7 +301,7 @@ mkScene TwoSpheres g = do
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
       objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
-  objects <- applyRandomGenM (fromObjects objs) g
+  objects <- applyRandomGenM (fromObjectsWithBucket 4 objs) g
   pure
     Scene
       { objects
@@ -328,7 +328,7 @@ mkScene RandomScene g = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjects objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket 8 objs) g
   pure
     Scene
       { objects = bvh

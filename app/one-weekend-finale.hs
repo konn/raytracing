@@ -304,7 +304,7 @@ mkScene g Options {} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjects objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket 4 objs) g
   pure
     Scene
       { objects = bvh

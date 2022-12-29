@@ -2,15 +2,13 @@
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# HLINT ignore "Avoid lambda" #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedDatatypes #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Avoid lambda" #-}
 
 module RayTracing.BVH (
   BVH (),
@@ -18,6 +16,7 @@ module RayTracing.BVH (
   size,
   nearestHit,
   fromObjects,
+  fromObjectsWithBucket,
   BVHScene' (..),
   Scene,
   Object (..),
@@ -30,7 +29,6 @@ import Control.Lens (view)
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict
 import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.Functor ((<&>))
 import Data.Image.Types (Pixel, RGB)
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
@@ -59,9 +57,13 @@ newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
 
 type BVH# :: Type -> UnliftedType
 data BVH# a where
-  Leaf# :: !BoundingBox -> !a -> BVH# a
+  Leaf# :: !BoundingBox -> !(V.Vector a) -> BVH# a
   Branch# :: !Int -> !BoundingBox -> !(BVH# a) -> !(BVH# a) -> BVH# a
   Empty# :: BVH# a
+
+{-# INLINE leaf1 #-}
+leaf1 :: BoundingBox -> p -> BVH# p
+leaf1 bb v = Leaf# bb (V.singleton v)
 
 depth :: BVH a -> Int
 {-# INLINE depth #-}
@@ -76,10 +78,14 @@ depth bvh = go (unBVH bvh)
 
 fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> g -> (BVH a, g)
 {-# INLINE fromObjects #-}
-fromObjects hits
+fromObjects = fromObjectsWithBucket 4
+
+fromObjectsWithBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> t a -> g -> (BVH a, g)
+{-# INLINE fromObjectsWithBucket #-}
+fromObjectsWithBucket siz hits
   | null hits = (BVH Empty#,)
   | otherwise = flip runSTGen $ \g -> do
-      buildBVH' g
+      buildBVH' (max 1 siz) g
         =<< HV.unsafeThaw
         =<< L.foldM
           ( L.premapM
@@ -95,11 +101,12 @@ data P a = P
 
 buildBVH' ::
   (RandomGen g) =>
+  Int ->
   STGenM g s ->
   HV.MVector U.MVector V.MVector s (BoundingBox, a) ->
   ST s (BVH a)
 {-# INLINE buildBVH' #-}
-buildBVH' g = fmap (\p -> BVH (bvh# p)) . go
+buildBVH' bucketSize g = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
@@ -108,45 +115,59 @@ buildBVH' g = fmap (\p -> BVH (bvh# p)) . go
             0 -> comparing $ view _x . lowerBound . fst
             1 -> comparing $ view _y . lowerBound . fst
             _ -> comparing $ view _z . lowerBound . fst
-      case HMV.length objs of
-        0 -> pure $ P (error "Empty") Empty#
-        1 ->
-          HMV.unsafeRead objs 0 <&> \(bb, h) ->
-            P bb (Leaf# bb h)
+          len = HMV.length objs
+      if
+          | len <= 1 -> pure ()
+          | len == 2 -> OptSort.sort2ByOffset cmp objs 0
+          | len == 3 -> OptSort.sort3ByOffset cmp objs 0
+          | len == 4 -> OptSort.sort4ByOffset cmp objs 0
+          | otherwise -> Intro.sortBy cmp objs
+      case len of
+        _ | len <= bucketSize -> do
+          bbObjs <- HV.unsafeFreeze objs
+          let !bbs = U.foldl1' (<>) (HV.projectFst bbObjs)
+              !objs' = HV.projectSnd bbObjs
+          pure $ P bbs (Leaf# bbs objs')
         2 -> do
-          OptSort.sort2ByOffset cmp objs 0
           (lb, l) <- HMV.unsafeRead objs 0
           (rb, r) <- HMV.unsafeRead objs 1
           let !lrb = lb <> rb
-          pure $ P lrb (Branch# 2 lrb (Leaf# lb l) (Leaf# rb r))
+          pure $ P lrb (Branch# 2 lrb (leaf1 lb l) (leaf1 rb r))
         3 -> do
-          OptSort.sort3ByOffset cmp objs 0
           (lb, l) <- HMV.unsafeRead objs 0
           (mb, m) <- HMV.unsafeRead objs 1
           (rb, r) <- HMV.unsafeRead objs 2
+          objs' <- V.unsafeFreeze $ HMV.projectSnd objs
           let !lmb = lb <> mb
               !lmrb = lmb <> rb
-          pure $ P lmrb (Branch# 3 lmrb (Branch# 2 lmb (Leaf# lb l) (Leaf# mb m)) (Leaf# rb r))
+              !ls
+                | bucketSize == 1 = Branch# 2 lmb (leaf1 lb l) (leaf1 mb m)
+                | otherwise = Leaf# lmb $ V.unsafeTake 2 objs'
+              !rs = leaf1 rb r
+          pure $ P lmrb (Branch# 3 lmrb ls rs)
         4 -> do
-          OptSort.sort4ByOffset cmp objs 0
           (bb0, o0) <- HMV.unsafeRead objs 0
           (bb1, o1) <- HMV.unsafeRead objs 1
           (bb2, o2) <- HMV.unsafeRead objs 2
           (bb3, o3) <- HMV.unsafeRead objs 3
+          objs' <- V.unsafeFreeze $ HMV.projectSnd objs
           let !b01 = bb0 <> bb1
               !b23 = bb2 <> bb3
               !b0123 = b01 <> b23
-          pure $
-            P
-              b0123
-              ( Branch#
-                  4
-                  b0123
-                  (Branch# 2 b01 (Leaf# bb0 o0) (Leaf# bb1 o1))
-                  (Branch# 2 b23 (Leaf# bb2 o2) (Leaf# bb3 o3))
-              )
-        len -> do
-          Intro.sortBy cmp objs
+              !(# ls, rs #) =
+                if bucketSize == 1
+                  then
+                    (#
+                      Branch# 2 b01 (leaf1 bb0 o0) (leaf1 bb1 o1)
+                      , Branch# 2 b23 (leaf1 bb2 o2) (leaf1 bb3 o3)
+                    #)
+                  else
+                    (#
+                      Leaf# b01 (V.unsafeTake 2 objs')
+                      , Leaf# b23 (V.unsafeDrop 2 objs')
+                    #)
+          pure $ P b0123 (Branch# 4 b0123 ls rs)
+        _ -> do
           let loSz = len `quot` 2
               lo = HMV.unsafeSlice 0 loSz objs
               hi = MG.unsafeSlice loSz (len - loSz) objs
@@ -174,7 +195,7 @@ nearestHit mtmin mtmax0 ray bvh = go mtmax0 (unBVH bvh)
       forM_ (bvhBBox tree) $ \bbox ->
         guard $ hitsBox ray bbox mtmin mtmax
       case tree of
-        Leaf# _ a -> (,a) <$> hitWithin a mtmin mtmax ray
+        Leaf# _ as -> withNearestHitWithin mtmin mtmax ray as
         Branch# _ _ l r ->
           case go mtmax l of
             Just hit@(Hit {hitTime}, _) ->
@@ -192,7 +213,7 @@ size :: BVH a -> Int
 size bvh = size# (unBVH bvh)
 
 size# :: BVH# a -> Int
-size# (Leaf# _ _) = 1
+size# (Leaf# _ v) = V.length v
 size# (Branch# n _ _ _) = n
 size# Empty# = 0
 
