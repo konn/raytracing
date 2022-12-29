@@ -3,7 +3,11 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module RayTracing.Texture.Image (ImageTexture, ImageTexture' (..), loadImageTexture) where
+module RayTracing.Texture.Image (
+  ImageTexture,
+  ImageTexture' (..),
+  loadImageTexture,
+) where
 
 import Control.Lens ((%~))
 import Data.Coerce (coerce)

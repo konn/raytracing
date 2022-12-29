@@ -1,5 +1,6 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
@@ -17,6 +18,7 @@ import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (forM_, guard, when, (<=<))
 import Control.Monad.ST.Strict (ST)
+import Control.Monad.ST.Unsafe (unsafeIOToST)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Control.Monad.Trans.Writer.CPS
 import Data.Bifunctor qualified as Bi
@@ -30,7 +32,8 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Massiv.Array (Sz (..))
 import Data.Massiv.Array qualified as M
-import Data.Massiv.Array.IO (writeImage)
+import Data.Massiv.Array.IO (readImageAuto, writeImage)
+import Data.Massiv.Array.IO qualified as C
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Alt (..))
 import Data.Scientific qualified as S
@@ -57,6 +60,7 @@ import RayTracing.Object hiding (Scene, SceneOf (..), rayColour)
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import RayTracing.Texture
+import RayTracing.Texture.Image (ImageTexture' (..), loadImageTexture)
 import System.Random
 import System.Random.Orphans ()
 import System.Random.Stateful (RandomGenM, STGenM, applyRandomGenM, randomRM, runSTGen_)
@@ -77,6 +81,8 @@ main = do
 toOutputPath :: SceneName -> FilePath
 toOutputPath RandomScene = workspace </> "final" FP.<.> defaultFormat
 toOutputPath TwoSpheres = workspace </> "two-spheres" FP.<.> defaultFormat
+toOutputPath RayCharles = workspace </> "ray-charles" FP.<.> defaultFormat
+toOutputPath Earth = workspace </> "earth" FP.<.> defaultFormat
 
 defaultFormat :: String
 defaultFormat = "png"
@@ -109,7 +115,7 @@ data Options = Options
   }
   deriving (Show, Eq, Ord, Generic)
 
-data SceneName = RandomScene | TwoSpheres
+data SceneName = RandomScene | TwoSpheres | RayCharles | Earth
   deriving (Show, Eq, Ord, Generic)
 
 cmdP :: Opt.ParserInfo Options
@@ -121,6 +127,8 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
           mconcat
             [ Opt.command "two-spheres" (Opt.info (pure TwoSpheres) $ Opt.progDesc "Two Spheres example")
             , Opt.command "random" (Opt.info (pure RandomScene) $ Opt.progDesc "Two Spheres example")
+            , Opt.command "ray-charles" (Opt.info (pure RayCharles) $ Opt.progDesc "Random scene in memorial with Ray Charles")
+            , Opt.command "earth" (Opt.info (pure Earth) $ Opt.progDesc "Random scene in memorial with Ray Charles")
             ]
       cutoff <-
         fromIntegral @Natural
@@ -308,6 +316,17 @@ p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
 mkScene :: RandomGen g => SceneName -> Options -> STGenM g s -> ST s Scene
+mkScene Earth Options {..} g = do
+  earthmap <- unsafeIOToST $ loadImageTexture $ "data" </> "earthmap.jpg"
+  let earth = Lambertian earthmap
+      sph1 = Sphere {center = p3 (0, 0, 0), radius = 2}
+      objs = [MkSomeObject sph1 earth]
+  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  pure
+    Scene
+      { objects
+      , background = blueGradientBackground
+      }
 mkScene TwoSpheres Options {..} g = do
   let checker =
         Lambertian $
@@ -336,6 +355,83 @@ mkScene RandomScene Options {..} g = do
       material2 = Lambertian $ MkAttn 0.4 0.2 0.1
       sphere2 = Sphere (p3 (-4, 1, 0)) 1.0
       material3 = Metal $ MkAttn 0.7 0.6 0.5
+      sphere3 = Sphere (p3 (4, 1, 0)) 1.0
+  balls <- execWriterT generateBalls
+  let objs =
+        FML.cons
+          (MkSomeObject ground groundMaterial)
+          balls
+          <> FML.fromList
+            [ MkSomeObject sphere1 material1
+            , MkSomeObject sphere2 material2
+            , MkSomeObject sphere3 material3
+            ]
+  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  pure
+    Scene
+      { objects = bvh
+      , background = blueGradientBackground
+      }
+  where
+    generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
+      r <- randomRM (0.15, 0.25) g
+      let basePt = p3 (4, r, 0.0)
+      dx <- randomRM (0, 0.9) g
+      dy <- randomRM (0, 0.9) g
+      let center = p3 (a + dx, r, b + dy)
+          sphere = Sphere center r
+      when (distance center basePt > 0.9) $ do
+        objects <-
+          chooseM
+            g
+            [
+              ( 7.5
+              , pure . MkSomeObject sphere . Lambertian
+                  <$> ((*) <$> randomAtten (0, 1.0) g <*> randomAtten (0, 1.0) g)
+              )
+            ,
+              ( 1.0
+              , fmap (pure . MkSomeObject sphere) . FuzzyMetal
+                  <$> randomAtten (0.5, 1.0) g
+                  <*> randomRM (0, 0.5) g
+              )
+            ,
+              ( 0.1
+              , do
+                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
+                  pure [MkSomeObject sphere glass]
+              )
+            ,
+              ( 0.05
+              , do
+                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
+                  pure
+                    [ MkSomeObject sphere glass
+                    , MkSomeObject (sphere & #radius *~ -0.9) glass
+                    ]
+              )
+            ]
+        tell $ FML.fromList objects
+mkScene RayCharles Options {..} g = do
+  charlesGS <-
+    unsafeIOToST $
+      readImageAuto @M.S @(C.Y' C.SRGB) @Double $
+        "data" </> "ray-charles.jpg"
+  let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
+      groundMaterial =
+        Lambertian $
+          CheckerTexture (ColorRGB 0.2 0.3 0.1) (ColorRGB 0.9 0.9 0.9) 10 10 10
+      material1 = Dielectric 1.5
+      sphere1 = Sphere (p3 (0, 1, 0)) 1.0
+      material2 = Lambertian $ MkAttn 0.4 0.2 0.1
+      sphere2 = Sphere (p3 (-4, 1, 0)) 1.0
+      imgTxt =
+        ImageTexture $
+          M.computeP @M.S $
+            M.map (\(C.PixelY' x) -> x *^ PixelRGB 0.7 0.6 0.5) charlesGS
+      material3 =
+        Metal
+          TextureOffset {offset = V2 0.025 0.1, texture = imgTxt}
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
   balls <- execWriterT generateBalls
   let objs =

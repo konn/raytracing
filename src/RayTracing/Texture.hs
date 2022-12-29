@@ -9,16 +9,18 @@ module RayTracing.Texture (
   SomeTexture (..),
   SolidColor (..),
   CheckerTexture (..),
+  TextureOffset (..),
 ) where
 
 import Control.Arrow ((>>>))
 import Control.Lens ((%~), (^.))
 import Data.Bifunctor (Bifunctor (..))
+import Data.Fixed (mod')
 import Data.Generics.Labels ()
 import Data.Image.Types (Color (..), RGB)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
 import Linear (_x, _y, _z)
-import Linear.Affine (Point)
+import Linear.Affine (Point, (.+^))
 import Linear.V2 (V2)
 import Linear.V3 (V3)
 
@@ -65,4 +67,15 @@ instance (Texture even, Texture odd) => Texture (CheckerTexture even odd) where
      in if sines < 0
           then colorAt evenTexture txtCd realCd
           else colorAt oddTexture txtCd realCd
+  {-# INLINE colorAt #-}
+
+data TextureOffset txt = TextureOffset
+  { offset :: {-# UNPACK #-} !(V2 Double)
+  , texture :: txt
+  }
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor)
+
+instance Texture txt => Texture (TextureOffset txt) where
+  colorAt TextureOffset {..} =
+    colorAt texture . fmap (`mod'` 1.0) . (.+^ offset)
   {-# INLINE colorAt #-}
