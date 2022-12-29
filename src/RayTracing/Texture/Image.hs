@@ -18,7 +18,7 @@ import Data.Ord (clamp)
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine (Point (..))
-import RIO (MonadIO)
+import RIO (MonadIO, fromMaybe)
 import RayTracing.Texture
 
 newtype ImageTexture' r = ImageTexture {image :: Image r RGB Double}
@@ -36,6 +36,6 @@ instance M.Manifest r (Pixel RGB Double) => Texture (ImageTexture' r) where
   colorAt ImageTexture {..} p =
     let P (V2 u v) = p <&> clamp (0, 1) & _y %~ (1 -)
         M.Sz2 h w = M.size image
-        i = floor (2 * u * fromIntegral (w - 1)) `quot` w
-        j = floor (2 * v * fromIntegral (h - 1)) `quot` h
-     in const $ coerce $ image M.! (i M.:. j)
+        i = floor (u * fromIntegral (w - 1))
+        j = floor (v * fromIntegral (h - 1))
+     in const $ coerce $ image M.! (j M.:. i)
