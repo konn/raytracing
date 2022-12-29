@@ -34,8 +34,8 @@ instance Hittable Sphere where
         [(-b - sqrt delta) / a, (-b + sqrt delta) / a]
     let p = rayAt hitTime r
         n = unsafeDir $ (p .-. center) ^/ radius
-        !theta = acos (-p ^. _y)
-        !phi = atan2 (-p ^. _z) (p ^. _x) + pi
+        !theta = acos (-unDir n ^. _y)
+        !phi = atan2 (-unDir n ^. _z) (unDir n ^. _x) + pi
         !uv = P $ V2 (phi / (2 * pi)) (theta / pi)
     pure $ mkHitWithOutwardNormal rayDirection p n hitTime uv
   boundingBox Sphere {..} =
