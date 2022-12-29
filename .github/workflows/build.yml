@@ -14,7 +14,7 @@ jobs:
     - uses: actions/cache@v3
       name: Cache ~/.cabal/store
       with:
-        key: cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}
+        key: cabal-store-9.2.5-${{ hashFiles('cabal.project', 'cabal.project.freeze', 'package.yaml')  }}
         restore-keys: |
           cabal-store-9.2.5-
 
@@ -22,9 +22,9 @@ jobs:
     - uses: actions/cache@v3
       name: Cache dist-newstyle
       with:
-        key: cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}-${{ hashFiles("**/*.hs") }}
+        key: cabal-store-9.2.5-${{ hashFiles('cabal.project', 'cabal.project.freeze', 'package.yaml')  }}-${{ hashFiles('**/*.hs') }}
         restore-keys: |
-          cabal-store-9.2.5-${{ hashFiles("cabal.project", "cabal.project.freeze", "package.yaml")  }}-
+          cabal-store-9.2.5-${{ hashFiles('cabal.project', 'cabal.project.freeze', 'package.yaml')  }}-
           cabal-store-9.2.5-
         path: dist-newstyle
     - name: Cabal configure
