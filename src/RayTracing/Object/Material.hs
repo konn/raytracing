@@ -33,7 +33,7 @@ import Data.Image.Types
 import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, Generic1)
 import Graphics.ColorModel
 import Linear
 import Linear.Direction
@@ -129,27 +129,29 @@ instance Texture txt => Material (Hemispheric txt) where
             }
     pure (Attenuation $ colorAt albedo textureCoordinate coord, scattered)
 
-newtype Metal = Metal {albedo :: Attenuation RGB Double}
-  deriving (Show, Eq, Ord, Generic)
+newtype Metal txt = Metal {albedo :: txt}
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
-instance Material Metal where
+instance Texture txt => Material (Metal txt) where
   scatter Metal {..} Hit {..} inRay = const $ do
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled}
+        col = colorAt albedo textureCoordinate coord
     guard $ refled `dot` unDir normal > 0
-    pure (albedo, scatterred)
+    pure (Attenuation col, scatterred)
   {-# INLINE scatter #-}
 
-data FuzzyMetal = FuzzyMetal {albedo :: !(Attenuation RGB Double), fuzz :: !Double}
-  deriving (Show, Eq, Ord, Generic)
+data FuzzyMetal txt = FuzzyMetal {albedo :: !txt, fuzz :: !Double}
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
-instance Material FuzzyMetal where
+instance Texture txt => Material (FuzzyMetal txt) where
   scatter FuzzyMetal {..} Hit {..} inRay g = do
     f <- lift $ (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere g
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled ^+^ unDir f}
+        col = colorAt albedo textureCoordinate coord
     guard (refled `dot` unDir normal > 0)
-    pure (albedo, scatterred)
+    pure (Attenuation col, scatterred)
   {-# INLINE scatter #-}
 
 refract ::
