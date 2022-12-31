@@ -9,9 +9,12 @@
 
 module RayTracing.BoundingBox (
   BoundingBox (..),
+  volume,
+  surfaceArea,
   hitsBox,
 ) where
 
+import Control.Lens ((^.))
 import Control.Monad (guard)
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
@@ -21,7 +24,7 @@ import Data.Strict.Tuple (Pair (..))
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Exts (UnliftedType)
 import GHC.Generics (Generic)
-import Linear (V3 (..))
+import Linear (V3 (..), _xy, _yz, _zx)
 import Linear.Affine
 import Linear.Matrix (M23)
 import Linear.V2 (V2 (..))
@@ -29,6 +32,20 @@ import RayTracing.Ray (Ray (..))
 
 data BoundingBox = MkBoundingBox {lowerBound, upperBound :: {-# UNPACK #-} !(Point V3 Double)}
   deriving (Show, Eq, Ord, Generic)
+
+volume :: BoundingBox -> Double
+{-# INLINE volume #-}
+volume = product . ((.-.) <$> upperBound <*> lowerBound)
+
+surfaceArea :: BoundingBox -> Double
+{-# INLINE surfaceArea #-}
+surfaceArea MkBoundingBox {..} =
+  let !delta = upperBound .-. lowerBound
+      !w = product $ delta ^. _yz
+      !h = product $ delta ^. _zx
+      !d = product $ delta ^. _xy
+      !vol = w * h * d
+   in vol
 
 instance Semigroup BoundingBox where
   l <> r =

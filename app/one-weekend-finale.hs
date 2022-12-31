@@ -306,7 +306,7 @@ mkScene Options {} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- hoist generalize $ fromObjectsWithBucket 4 objs
+  !bvh <- hoist generalize $ fromObjectsWithBinBucket 16 4 objs
   pure
     Scene
       { objects = bvh

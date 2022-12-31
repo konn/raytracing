@@ -286,7 +286,7 @@ mkScene Options {..} = do
           ++ [ MkSomeObject hollowLeftSphere leftMaterial
              | hollow
              ]
-  objects <- fromObjectsWithBucket 4 objs
+  objects <- fromObjectsWithBinBucket 16 4 objs
   pure
     Scene
       { objects = objects

@@ -16,7 +16,7 @@ module RayTracing.BVH (
   size,
   nearestHit,
   fromObjects,
-  fromObjectsWithBucket,
+  fromObjectsWithBinBucket,
   BVHScene' (..),
   Scene,
   Object (..),
@@ -25,15 +25,18 @@ module RayTracing.BVH (
 ) where
 
 import Control.Foldl qualified as L
-import Control.Lens (Identity (..), view)
+import Control.Lens (Identity (..), both, sumOf, view, (%~))
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Control.Monad.Trans.State.Strict (State, StateT (..))
+import Data.Function ((&))
 import Data.Image.Types (Pixel, RGB)
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
+import Data.Semigroup (Arg (..), Min (..))
+import Data.Strict.Tuple (Pair (..))
 import Data.Vector qualified as V
 import Data.Vector.Algorithms.Intro qualified as Intro
 import Data.Vector.Algorithms.Optimal qualified as OptSort
@@ -79,18 +82,18 @@ depth bvh = go (unBVH bvh)
 
 fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> State g (BVH a)
 {-# INLINE fromObjects #-}
-fromObjects = fromObjectsWithBucket 4
+fromObjects = fromObjectsWithBinBucket 2 4
 
 runStateST :: (forall s. StateT r (ST s) a) -> State r a
 {-# INLINE runStateST #-}
 runStateST f = StateT $ \r -> Identity $ runST (runStateT f r)
 
-fromObjectsWithBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> t a -> State g (BVH a)
-{-# INLINE fromObjectsWithBucket #-}
-fromObjectsWithBucket siz hits
+fromObjectsWithBinBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> Int -> t a -> State g (BVH a)
+{-# INLINE fromObjectsWithBinBucket #-}
+fromObjectsWithBinBucket bins siz hits
   | null hits = pure (BVH Empty#)
   | otherwise = runStateST $ do
-      buildBVH' (max 1 siz)
+      buildBVH' (max 2 bins) (max 1 siz)
         =<< HV.unsafeThaw
         =<< L.foldM
           ( L.premapM
@@ -107,10 +110,11 @@ data P a = P
 buildBVH' ::
   (RandomGen g) =>
   Int ->
+  Int ->
   HV.MVector U.MVector V.MVector s (BoundingBox, a) ->
   StateT g (ST s) (BVH a)
 {-# INLINE buildBVH' #-}
-buildBVH' bucketSize = fmap (\p -> BVH (bvh# p)) . go
+buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
@@ -172,9 +176,27 @@ buildBVH' bucketSize = fmap (\p -> BVH (bvh# p)) . go
                     #)
           pure $ P b0123 (Branch# 4 b0123 ls rs)
         _ -> do
-          let loSz = len `quot` 2
-              lo = HMV.unsafeSlice 0 loSz objs
-              hi = MG.unsafeSlice loSz (len - loSz) objs
+          let !bins = min bins0 len
+              !(blk, rest) = len `quotRem` bins
+          !bbs' <- U.unsafeFreeze $ HMV.projectFst objs
+          let Min (Arg _ !loSz) =
+                U.foldl1' (<>) $
+                  U.unfoldrExactN
+                    (bins - 1)
+                    ( \(ith :!: off) ->
+                        let !step
+                              | ith < rest = blk + 1
+                              | otherwise = blk
+                            !k = off + step
+                            !cost =
+                              U.splitAt k bbs'
+                                & both %~ surfaceArea . U.foldl1' (<>)
+                                & sumOf both
+                         in (Min (Arg cost k), (ith + 1) :!: k)
+                    )
+                    (0 :!: 0)
+              !lo = HMV.unsafeSlice 0 loSz objs
+              !hi = MG.unsafeSlice loSz (len - loSz) objs
           P lb l <- go lo
           P rb r <- go hi
           let !lrb = lb <> rb

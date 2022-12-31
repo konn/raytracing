@@ -111,6 +111,7 @@ data Options = Options
   , viewUp :: !(Dir V3 Double)
   , thinLens :: !(Maybe ThinLens)
   , bucketSize :: !Int
+  , binSize :: !Int
   , randomSeed :: !(Maybe Int)
   , scene :: !SceneName
   }
@@ -247,6 +248,13 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
             <> Opt.value 8
             <> Opt.showDefault
             <> Opt.help "The maximum # of objects to store in a BVH Node"
+      binSize <-
+        Opt.option Opt.auto $
+          Opt.long "bin-size"
+            <> Opt.short 'b'
+            <> Opt.value 16
+            <> Opt.showDefault
+            <> Opt.help "The bin size used for binning in BVH construction"
       pure Options {..}
 
 thinLensP :: Opt.Parser ThinLens
@@ -322,7 +330,7 @@ mkScene Earth Options {..} = do
   let earth = Lambertian earthmap
       sph1 = Sphere {center = p3 (0, 0, 0), radius = 2}
       objs = [MkSomeObject sph1 earth]
-  objects <- hoist generalize $ fromObjectsWithBucket bucketSize objs
+  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
   pure
     Scene
       { objects
@@ -340,7 +348,7 @@ mkScene TwoSpheres Options {..} = do
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
       objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
-  objects <- hoist generalize $ fromObjectsWithBucket bucketSize objs
+  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
   pure
     Scene
       { objects
@@ -367,7 +375,7 @@ mkScene RandomScene Options {..} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- hoist generalize $ fromObjectsWithBucket bucketSize objs
+  !bvh <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
   pure
     Scene
       { objects = bvh
@@ -403,7 +411,7 @@ mkScene RayCharles Options {..} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- hoist generalize $ fromObjectsWithBucket bucketSize objs
+  !bvh <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
   pure
     Scene
       { objects = bvh
