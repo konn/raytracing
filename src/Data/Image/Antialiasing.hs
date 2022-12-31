@@ -6,7 +6,7 @@ module Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing) wh
 
 import Control.Arrow ((<<<))
 import Control.Lens
-import Control.Monad.ST.Strict (ST)
+import Control.Monad.Trans.State.Strict (State)
 import Data.Avg
 import Data.Image.Types
 import Data.Massiv.Array (Ix2 (..), Sz2)
@@ -23,13 +23,11 @@ randomSamplingAntialias ::
   --   1. PRNG
   --   2. Width ratio in the unit interval [0, 1]
   --   3. Height ratio in the unit interval [0, 1]
-  ( forall s.
-    STGenM g s ->
-    -- Width ratio [0, 1]
+  ( -- Width ratio [0, 1]
     Double ->
     -- Height ratio [0, 1]
     Double ->
-    ST s (Pixel cs Double)
+    State g (Pixel cs Double)
   ) ->
   M.Matrix M.D (Pixel cs Double)
 randomSamplingAntialias g0 samples (M.Sz2 h w) f =
@@ -43,12 +41,12 @@ randomSamplingAntialias g0 samples (M.Sz2 h w) f =
           M.Par
           (M.Sz3 h w samples)
           ( \_ (M.Ix3 j i _) ->
-              pure <<< flip runSTGen \g -> do
+              pure <<< flip runStateGen \g -> do
                 !dx <- randomRM (-1.0, 1.0) g
                 !dy <- randomRM (-1.0, 1.0) g
                 let !u = (fromIntegral i + dx) / (fromIntegral w - 1)
                     !v = (fromIntegral (h - j - 1) + dy) / (fromIntegral h - 1)
-                Avg 1 <$> f g u v
+                Avg 1 <$> f u v
           )
 
 stencilAntialiasing ::
@@ -62,13 +60,11 @@ stencilAntialiasing ::
   --   1. PRNG
   --   2. Width ratio in the unit interval [0, 1]
   --   3. Height ratio in the unit interval [0, 1]
-  ( forall s.
-    STGenM g s ->
-    -- Width ratio [0, 1]
+  ( -- Width ratio [0, 1]
     Double ->
     -- Height ratio [0, 1]
     Double ->
-    ST s (Pixel cs Double)
+    State g (Pixel cs Double)
   ) ->
   M.Matrix M.D (Pixel cs Double)
 stencilAntialiasing g0 stencilSize (M.Sz2 h w) f =
@@ -87,8 +83,8 @@ stencilAntialiasing g0 stencilSize (M.Sz2 h w) f =
                     M.Par
                     (M.Sz2 h' w')
                     ( const $ \(M.Ix2 j i) ->
-                        pure <<< flip runSTGen \g ->
+                        pure <<< flip runStateGen \_ ->
                           let u = fromIntegral i / (fromIntegral w' - 1)
                               v = fromIntegral (h' - j - 1) / (fromIntegral h' - 1)
-                           in f g u v
+                           in f u v
                     )

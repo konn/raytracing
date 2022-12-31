@@ -35,6 +35,7 @@ dependencies:
 - linear
 - massiv
 - massiv-io
+- mmorph
 - optparse-applicative
 - profunctors
 - random

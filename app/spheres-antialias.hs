@@ -20,7 +20,7 @@ import RayTracing.Object.Shape
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
-import System.Random.Stateful (runSTGen_)
+import System.Random.Stateful (runStateGen_)
 
 main :: IO ()
 main = do
@@ -45,7 +45,7 @@ mkImage g =
           let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
               !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
               -- No thin lens here, so we can cheat to pass a dummy StdGen
-              !r = runSTGen_ (mkStdGen 42) $ \g' -> getRay g' aCamera $ P $ V2 u v
+              !r = runStateGen_ g $ const $ getRay aCamera $ P $ V2 u v
            in Avg 1 $ colorRay world r
       )
     $ M.computeP @M.U

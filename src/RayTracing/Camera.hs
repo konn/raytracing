@@ -12,13 +12,14 @@ module RayTracing.Camera (
 ) where
 
 import Control.Applicative (liftA2)
+import Control.Monad.Trans.State.Strict (State)
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine
 import Linear.Angle
 import Linear.Direction
 import RayTracing.Ray
-import System.Random.Stateful (RandomGenM, applyRandomGenM)
+import System.Random.Stateful (RandomGen, StateGenM (..), applyRandomGenM)
 import System.Random.Utils (randomPointInUnitDisk)
 
 data Camera = Camera
@@ -74,8 +75,8 @@ mkCamera CameraConfig {..} =
       lensRadius = (/ 2) . aperture <$> thinLens
    in Camera {..}
 
-getRay :: RandomGenM g r m => g -> Camera -> Point V2 Double -> m Ray
-getRay g Camera {..} (P (V2 s t)) = do
+getRay :: RandomGen g => Camera -> Point V2 Double -> State g Ray
+getRay Camera {..} (P (V2 s t)) = do
   offset <-
     maybe
       (pure 0)
@@ -84,7 +85,7 @@ getRay g Camera {..} (P (V2 s t)) = do
             . liftA2 (^*) (V2 (unDir xUnit) (unDir yUnit))
             . unP
             . (r *^)
-            <$> applyRandomGenM randomPointInUnitDisk g
+            <$> applyRandomGenM randomPointInUnitDisk StateGenM
       )
       lensRadius
   let rayDirection =

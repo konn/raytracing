@@ -28,6 +28,7 @@ library
       Data.Avg
       Data.Image.Antialiasing
       Data.Image.Types
+      Data.Vector.Shuffle
       Linear.Angle
       Linear.Direction
       RayTracing.BoundingBox
@@ -64,6 +65,7 @@ library
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -100,6 +102,7 @@ executable blue-to-white
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -137,6 +140,7 @@ executable camera
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -175,6 +179,7 @@ executable diffuse
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -212,6 +217,7 @@ executable gradient-with-simple-sphere
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -249,6 +255,7 @@ executable metal-spheres
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -286,6 +293,7 @@ executable metals-and-glasses
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -323,6 +331,7 @@ executable next-week
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -361,6 +370,7 @@ executable one-weekend-finale
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -399,6 +409,7 @@ executable spheres
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -436,6 +447,7 @@ executable spheres-antialias
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random
@@ -474,6 +486,7 @@ test-suite raytracing-test
     , linear
     , massiv
     , massiv-io
+    , mmorph
     , optparse-applicative
     , profunctors
     , random

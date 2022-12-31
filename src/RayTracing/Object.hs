@@ -17,6 +17,7 @@ module RayTracing.Object (
 
 import Control.Lens ((%~))
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.State.Strict (State)
 import Data.Bifoldable
 import Data.Bifunctor
 import Data.Bitraversable (Bitraversable (..), bifoldMapDefault, bimapDefault)
@@ -26,7 +27,7 @@ import GHC.Generics (Generic, Generic1)
 import RayTracing.Object.Material
 import RayTracing.Object.Shape
 import RayTracing.Ray
-import System.Random.Stateful (RandomGenM)
+import System.Random.Stateful (RandomGen)
 
 data Object shape material = Object
   { shape :: !shape
@@ -63,22 +64,21 @@ data SceneOf sh mat = Scene
 rayColour ::
   ( Hittable sh
   , Material mat
-  , RandomGenM g r m
+  , RandomGen g
   ) =>
   -- | Threshould to reagard as zero
   Double ->
   SceneOf sh mat ->
-  g ->
   Int ->
   Ray ->
-  m (Pixel RGB Double)
-rayColour eps Scene {..} g = go
+  State g (Pixel RGB Double)
+rayColour eps Scene {..} = go
   where
     go !depth r
       | depth <= 0 = pure 0.0
       | Just (hit, obj) <-
           withNearestHitWithin (Just eps) Nothing r objects = do
-          runMaybeT (scatter obj hit r g) >>= \case
+          runMaybeT (scatter obj hit r) >>= \case
             Nothing -> pure 0.0
             Just (attenuation, scattered) ->
               (attenuation .*) <$> go (depth - 1) scattered

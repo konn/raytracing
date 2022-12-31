@@ -15,8 +15,9 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (forM_, guard, when, (<=<))
-import Control.Monad.ST.Strict (ST)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT (..))
+import Control.Monad.Trans.State.Strict (State)
 import Control.Monad.Trans.Writer.CPS
 import Data.Bifunctor qualified as Bi
 import Data.ByteString.Char8 qualified as BS
@@ -46,6 +47,7 @@ import Math.NumberTheory.Roots (integerSquareRoot)
 import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
+import RIO.State (MonadState)
 import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
 import RayTracing.BVH
@@ -55,8 +57,7 @@ import RayTracing.Object.Sphere
 import RayTracing.Ray
 import RayTracing.Texture
 import System.Random
-import System.Random.Orphans ()
-import System.Random.Stateful (RandomGenM, STGenM, applyRandomGenM, randomRM, runSTGen_)
+import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM, runStateGen_)
 import Text.Read (readMaybe)
 
 default ([])
@@ -66,7 +67,7 @@ main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
   let (gScene, g') = split g
-      scene = runSTGen_ gScene $ flip mkScene opts
+      scene = runStateGen_ gScene $ const $ mkScene opts
   putStrLn $ "- The scene of " <> show (size $ objects scene) <> " objects"
   putStrLn $ "- Tree height = " <> show (depth $ objects scene)
   writeImage outputPath $ mkImage g' opts scene
@@ -274,16 +275,16 @@ mkImage g0 Options {..} scene =
    in M.computeP $
         fromDoubleImage $
           correctGamma $
-            antialias $ \g ->
+            antialias $
               curry $
-                rayColour epsilon scene g cutoff
-                  <=< getRay g aCamera . p2
+                rayColour epsilon scene cutoff
+                  <=< getRay aCamera . p2
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => STGenM g s -> Options -> ST s Scene
-mkScene g Options {} = do
+mkScene :: forall g. RandomGen g => Options -> State g Scene
+mkScene Options {} = do
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =
         Lambertian $
@@ -304,7 +305,7 @@ mkScene g Options {} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket 4 objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket 4 objs) StateGenM
   pure
     Scene
       { objects = bvh
@@ -315,50 +316,50 @@ mkScene g Options {} = do
       }
   where
     generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
-      r <- randomRM (0.15, 0.25) g
+      r <- lift $ randomRM (0.15, 0.25) StateGenM
       let basePt = p3 (4, r, 0.0)
-      dx <- randomRM (0, 0.9) g
-      dy <- randomRM (0, 0.9) g
+      dx <- lift $ randomRM (0, 0.9) StateGenM
+      dy <- lift $ randomRM (0, 0.9) StateGenM
       let center = p3 (a + dx, r, b + dy)
           sphere = Sphere center r
       when (distance center basePt > 0.9) $ do
         objects <-
-          chooseM
-            g
-            [
-              ( 7.5
-              , pure . MkSomeObject sphere . Lambertian
-                  <$> ((*) <$> randomAtten (0, 1.0) g <*> randomAtten (0, 1.0) g)
-              )
-            ,
-              ( 1.0
-              , fmap (pure . MkSomeObject sphere) . FuzzyMetal
-                  <$> randomAtten (0.5, 1.0) g
-                  <*> randomRM (0, 0.5) g
-              )
-            ,
-              ( 0.1
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure [MkSomeObject sphere glass]
-              )
-            ,
-              ( 0.05
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure
-                    [ MkSomeObject sphere glass
-                    , MkSomeObject (sphere & #radius *~ -0.9) glass
-                    ]
-              )
-            ]
+          lift $
+            chooseM
+              [
+                ( 7.5
+                , pure . MkSomeObject sphere . Lambertian
+                    <$> ((*) <$> randomAtten (0, 1.0) <*> randomAtten (0, 1.0))
+                )
+              ,
+                ( 1.0
+                , fmap (pure . MkSomeObject sphere) . FuzzyMetal
+                    <$> randomAtten (0.5, 1.0)
+                    <*> randomRM (0, 0.5) StateGenM
+                )
+              ,
+                ( 0.1
+                , do
+                    glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
+                    pure [MkSomeObject sphere glass]
+                )
+              ,
+                ( 0.05
+                , do
+                    glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
+                    pure
+                      [ MkSomeObject sphere glass
+                      , MkSomeObject (sphere & #radius *~ -0.9) glass
+                      ]
+                )
+              ]
         tell $ FML.fromList objects
 
-randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation RGB Double)
-randomAtten ran = sequenceA . pure . randomRM ran
+randomAtten :: (RandomGen g, MonadState g m) => (Double, Double) -> m (Attenuation RGB Double)
+randomAtten ran = sequenceA $ pure $ randomRM ran StateGenM
 
-chooseM :: RandomGenM g r m => g -> NonEmpty (Double, m a) -> m a
-chooseM g alts = do
+chooseM :: (RandomGen g, MonadState g m) => NonEmpty (Double, m a) -> m a
+chooseM alts = do
   let (count :!: total, wps) =
         mapAccumL
           ( \(!l :!: !acc) (p, m) ->
@@ -369,7 +370,7 @@ chooseM g alts = do
           (0 :!: 0)
           alts
       (wps', w) = Bi.second (STpl.snd . head) $ NE.splitAt (count - 1) wps
-  weight <- randomRM (0, total) g
+  weight <- randomRM (0, total) StateGenM
   foldr
     (\(thresh :!: m) alt -> if weight <= thresh then m else alt)
     w

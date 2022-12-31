@@ -17,9 +17,10 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (forM_, guard, when, (<=<))
-import Control.Monad.ST.Strict (ST)
-import Control.Monad.ST.Unsafe (unsafeIOToST)
+import Control.Monad.Morph (generalize, hoist)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT (..))
+import Control.Monad.Trans.State.Strict (State, StateT)
 import Control.Monad.Trans.Writer.CPS
 import Data.Bifunctor qualified as Bi
 import Data.ByteString.Char8 qualified as BS
@@ -52,6 +53,7 @@ import Numeric.Natural (Natural)
 import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RIO.FilePath qualified as FP
+import RIO.State (MonadState)
 import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
 import RayTracing.BVH
@@ -62,8 +64,7 @@ import RayTracing.Ray
 import RayTracing.Texture
 import RayTracing.Texture.Image (ImageTexture' (..), loadImageTexture)
 import System.Random
-import System.Random.Orphans ()
-import System.Random.Stateful (RandomGenM, STGenM, applyRandomGenM, randomRM, runSTGen_)
+import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM, runStateGenT_)
 import Text.Read (readMaybe)
 
 default ([])
@@ -73,7 +74,7 @@ main = do
   opts@Options {..} <- Opt.execParser cmdP
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
   let (gScene, g') = split g
-      theScene = runSTGen_ gScene (mkScene scene opts)
+  theScene <- runStateGenT_ gScene $ const $ mkScene scene opts
   putStrLn $ "- The scene of " <> show (size $ objects theScene) <> " objects"
   putStrLn $ "- Tree height = " <> show (depth $ objects theScene)
   writeImage (fromMaybe (toOutputPath scene) outputPath) $ mkImage g' opts theScene
@@ -307,27 +308,27 @@ mkImage g0 Options {..} theScene =
    in M.computeP $
         fromDoubleImage $
           correctGamma $
-            antialias $ \g ->
+            antialias $
               curry $
-                rayColour epsilon theScene g cutoff
-                  <=< getRay g aCamera . p2
+                rayColour epsilon theScene cutoff
+                  <=< getRay aCamera . p2
 
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => SceneName -> Options -> STGenM g s -> ST s Scene
-mkScene Earth Options {..} g = do
-  earthmap <- unsafeIOToST $ loadImageTexture $ "data" </> "earthmap.jpg"
+mkScene :: RandomGen g => SceneName -> Options -> StateT g IO Scene
+mkScene Earth Options {..} = do
+  earthmap <- loadImageTexture $ "data" </> "earthmap.jpg"
   let earth = Lambertian earthmap
       sph1 = Sphere {center = p3 (0, 0, 0), radius = 2}
       objs = [MkSomeObject sph1 earth]
-  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
   pure
     Scene
       { objects
       , background = blueGradientBackground
       }
-mkScene TwoSpheres Options {..} g = do
+mkScene TwoSpheres Options {..} = do
   let checker =
         Lambertian $
           CheckerTexture
@@ -339,13 +340,13 @@ mkScene TwoSpheres Options {..} g = do
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
       objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
-  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
   pure
     Scene
       { objects
       , background = blueGradientBackground
       }
-mkScene RandomScene Options {..} g = do
+mkScene RandomScene Options {..} = do
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =
         Lambertian $
@@ -356,7 +357,7 @@ mkScene RandomScene Options {..} g = do
       sphere2 = Sphere (p3 (-4, 1, 0)) 1.0
       material3 = Metal $ MkAttn 0.7 0.6 0.5
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
-  balls <- execWriterT generateBalls
+  balls <- hoist generalize $ execWriterT generateBalls
   let objs =
         FML.cons
           (MkSomeObject ground groundMaterial)
@@ -366,57 +367,16 @@ mkScene RandomScene Options {..} g = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
   pure
     Scene
       { objects = bvh
       , background = blueGradientBackground
       }
-  where
-    generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
-      r <- randomRM (0.15, 0.25) g
-      let basePt = p3 (4, r, 0.0)
-      dx <- randomRM (0, 0.9) g
-      dy <- randomRM (0, 0.9) g
-      let center = p3 (a + dx, r, b + dy)
-          sphere = Sphere center r
-      when (distance center basePt > 0.9) $ do
-        objects <-
-          chooseM
-            g
-            [
-              ( 7.5
-              , pure . MkSomeObject sphere . Lambertian
-                  <$> ((*) <$> randomAtten (0, 1.0) g <*> randomAtten (0, 1.0) g)
-              )
-            ,
-              ( 1.0
-              , fmap (pure . MkSomeObject sphere) . FuzzyMetal
-                  <$> randomAtten (0.5, 1.0) g
-                  <*> randomRM (0, 0.5) g
-              )
-            ,
-              ( 0.1
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure [MkSomeObject sphere glass]
-              )
-            ,
-              ( 0.05
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure
-                    [ MkSomeObject sphere glass
-                    , MkSomeObject (sphere & #radius *~ -0.9) glass
-                    ]
-              )
-            ]
-        tell $ FML.fromList objects
-mkScene RayCharles Options {..} g = do
+mkScene RayCharles Options {..} = do
   charlesGS <-
-    unsafeIOToST $
-      readImageAuto @M.S @(C.Y' C.SRGB) @Double $
-        "data" </> "ray-charles.jpg"
+    readImageAuto @M.S @(C.Y' C.SRGB) @Double $
+      "data" </> "ray-charles.jpg"
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =
         Lambertian $
@@ -433,7 +393,7 @@ mkScene RayCharles Options {..} g = do
         Metal
           TextureOffset {offset = V2 0.025 0.1, texture = imgTxt}
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
-  balls <- execWriterT generateBalls
+  balls <- hoist generalize $ execWriterT generateBalls
   let objs =
         FML.cons
           (MkSomeObject ground groundMaterial)
@@ -443,52 +403,12 @@ mkScene RayCharles Options {..} g = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) g
+  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
   pure
     Scene
       { objects = bvh
       , background = blueGradientBackground
       }
-  where
-    generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
-      r <- randomRM (0.15, 0.25) g
-      let basePt = p3 (4, r, 0.0)
-      dx <- randomRM (0, 0.9) g
-      dy <- randomRM (0, 0.9) g
-      let center = p3 (a + dx, r, b + dy)
-          sphere = Sphere center r
-      when (distance center basePt > 0.9) $ do
-        objects <-
-          chooseM
-            g
-            [
-              ( 7.5
-              , pure . MkSomeObject sphere . Lambertian
-                  <$> ((*) <$> randomAtten (0, 1.0) g <*> randomAtten (0, 1.0) g)
-              )
-            ,
-              ( 1.0
-              , fmap (pure . MkSomeObject sphere) . FuzzyMetal
-                  <$> randomAtten (0.5, 1.0) g
-                  <*> randomRM (0, 0.5) g
-              )
-            ,
-              ( 0.1
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure [MkSomeObject sphere glass]
-              )
-            ,
-              ( 0.05
-              , do
-                  glass <- Dielectric <$> randomRM (1.5, 1.7) g
-                  pure
-                    [ MkSomeObject sphere glass
-                    , MkSomeObject (sphere & #radius *~ -0.9) glass
-                    ]
-              )
-            ]
-        tell $ FML.fromList objects
 
 blueGradientBackground :: Ray -> Pixel RGB Double
 blueGradientBackground Ray {..} =
@@ -496,11 +416,11 @@ blueGradientBackground Ray {..} =
       !t = 0.5 * (unitDirection ^. _y + 1.0)
    in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
 
-randomAtten :: RandomGenM g r m => (Double, Double) -> g -> m (Attenuation RGB Double)
-randomAtten ran = sequenceA . pure . randomRM ran
+randomAtten :: (RandomGen g, MonadState g m) => (Double, Double) -> m (Attenuation RGB Double)
+randomAtten ran = sequenceA $ pure $ randomRM ran StateGenM
 
-chooseM :: RandomGenM g r m => g -> NonEmpty (Double, m a) -> m a
-chooseM g alts = do
+chooseM :: (RandomGen g, MonadState g m) => NonEmpty (Double, m a) -> m a
+chooseM alts = do
   let (count :!: total, wps) =
         mapAccumL
           ( \(!l :!: !acc) (p, m) ->
@@ -511,7 +431,7 @@ chooseM g alts = do
           (0 :!: 0)
           alts
       (wps', w) = Bi.second (STpl.snd . head) $ NE.splitAt (count - 1) wps
-  weight <- randomRM (0, total) g
+  weight <- randomRM (0, total) StateGenM
   foldr
     (\(thresh :!: m) alt -> if weight <= thresh then m else alt)
     w
@@ -519,3 +439,49 @@ chooseM g alts = do
 
 p3 :: (a, a, a) -> Point V3 a
 p3 (x, y, z) = P $ V3 x y z
+
+generateBalls ::
+  RandomGen g =>
+  WriterT
+    (FML.FMList (Object SomeHittable SomeMaterial))
+    (State g)
+    ()
+generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do
+  r <- lift $ randomRM (0.15, 0.25) StateGenM
+  let basePt = p3 (4, r, 0.0)
+  dx <- lift $ randomRM (0, 0.9) StateGenM
+  dy <- lift $ randomRM (0, 0.9) StateGenM
+  let center = p3 (a + dx, r, b + dy)
+      sphere = Sphere center r
+  when (distance center basePt > 0.9) $ do
+    objects <-
+      lift $
+        chooseM
+          [
+            ( 7.5
+            , pure . MkSomeObject sphere . Lambertian
+                <$> ((*) <$> randomAtten (0, 1.0) <*> randomAtten (0, 1.0))
+            )
+          ,
+            ( 1.0
+            , fmap (pure . MkSomeObject sphere) . FuzzyMetal
+                <$> randomAtten (0.5, 1.0)
+                <*> randomRM (0, 0.5) StateGenM
+            )
+          ,
+            ( 0.1
+            , do
+                glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
+                pure [MkSomeObject sphere glass]
+            )
+          ,
+            ( 0.05
+            , do
+                glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
+                pure
+                  [ MkSomeObject sphere glass
+                  , MkSomeObject (sphere & #radius *~ -0.9) glass
+                  ]
+            )
+          ]
+    tell $ FML.fromList objects

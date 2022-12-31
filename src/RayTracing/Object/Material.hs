@@ -27,6 +27,7 @@ import Control.Lens ((^.))
 import Control.Monad (guard, join)
 import Control.Monad.Trans.Class (MonadTrans (..))
 import Control.Monad.Trans.Maybe (MaybeT)
+import Control.Monad.Trans.State.Strict (State)
 import Data.Coerce (coerce)
 import Data.Generics.Labels ()
 import Data.Image.Types
@@ -40,8 +41,8 @@ import Linear.Direction
 import RayTracing.Object.Shape (HitRecord (..))
 import RayTracing.Ray
 import RayTracing.Texture
-import System.Random.Orphans ()
-import System.Random.Stateful (RandomGenM, applyRandomGenM, randomRM)
+import System.Random (RandomGen)
+import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
 
 newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
@@ -91,15 +92,15 @@ instance Material SomeMaterial where
   {-# INLINE scatter #-}
 
 class Material a where
-  scatter :: RandomGenM g r m => a -> HitRecord -> Ray -> g -> MaybeT m (Attenuation RGB Double, Ray)
+  scatter :: RandomGen g => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)
 
 newtype Lambertian txt = Lambertian {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
 
 instance Texture txt => Material (Lambertian txt) where
   {-# INLINE scatter #-}
-  scatter Lambertian {..} Hit {..} _ g = do
-    d <- lift $ applyRandomGenM randomPointOnUnitSphere g
+  scatter Lambertian {..} Hit {..} _ = do
+    d <- applyRandomGenM randomPointOnUnitSphere StateGenM
     let sDir = unDir normal ^+^ unDir d
         scattered =
           Ray
@@ -116,8 +117,8 @@ newtype Hemispheric txt = Hemispheric {albedo :: txt}
 
 instance Texture txt => Material (Hemispheric txt) where
   {-# INLINE scatter #-}
-  scatter Hemispheric {..} Hit {..} _ g = do
-    d <- lift $ applyRandomGenM (randomPointOnUnitHemisphere normal) g
+  scatter Hemispheric {..} Hit {..} _ = do
+    d <- applyRandomGenM (randomPointOnUnitHemisphere normal) StateGenM
     let sDir = unDir normal ^+^ unDir d
         scattered =
           Ray
@@ -133,7 +134,7 @@ newtype Metal txt = Metal {albedo :: txt}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
 instance Texture txt => Material (Metal txt) where
-  scatter Metal {..} Hit {..} inRay = const $ do
+  scatter Metal {..} Hit {..} inRay = do
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled}
         col = colorAt albedo textureCoordinate coord
@@ -145,8 +146,8 @@ data FuzzyMetal txt = FuzzyMetal {albedo :: !txt, fuzz :: !Double}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
 instance Texture txt => Material (FuzzyMetal txt) where
-  scatter FuzzyMetal {..} Hit {..} inRay g = do
-    f <- lift $ (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere g
+  scatter FuzzyMetal {..} Hit {..} inRay = do
+    f <- lift $ (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere StateGenM
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled ^+^ unDir f}
         col = colorAt albedo textureCoordinate coord
@@ -191,8 +192,8 @@ newtype Dielectric = Dielectric {refractiveIndex :: Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material Dielectric where
-  scatter di h@Hit {..} r g = do
-    thresh <- lift $ randomRM (0.0, 1.0) g
+  scatter di h@Hit {..} r = do
+    thresh <- randomRM (0.0, 1.0) StateGenM
     let scat =
           fromMaybe (reflectAround normal $ r ^. #rayDirection) $
             refract h di normal (dir $ r ^. #rayDirection) thresh

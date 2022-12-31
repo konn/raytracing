@@ -32,7 +32,7 @@ import RayTracing.Object
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
-import System.Random.Stateful (randomRM, runSTGen)
+import System.Random.Stateful (StateGenM (..), randomRM, runStateGen)
 
 main :: IO ()
 main = do
@@ -153,12 +153,12 @@ mkImage g0 opts@Options {..} =
                       M.Par
                       (Sz3 imageHeight imageWidth samplesPerPixel)
                       ( \_ (M.Ix3 j i _) ->
-                          pure <<< flip runSTGen \g -> do
-                            !c <- randomRM (0, 1.0) g
+                          pure <<< flip runStateGen \_ -> do
+                            !c <- randomRM (0, 1.0) StateGenM
                             let !u = (fromIntegral i + c) / (fromIntegral imageWidth - 1)
                                 !v = (fromIntegral j + c) / (fromIntegral imageHeight - 1)
-                            !r <- getRay g aCamera $ P $ V2 u v
-                            Avg 1 <$> rayColour epsilon scene g cutoff r
+                            !r <- getRay aCamera $ P $ V2 u v
+                            Avg 1 <$> rayColour epsilon scene cutoff r
                       )
 
 mkScene :: Options -> SceneOf Sphere SomeMaterial

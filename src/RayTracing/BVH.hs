@@ -29,6 +29,7 @@ import Control.Lens (view)
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.State.Strict (State)
 import Data.Image.Types (Pixel, RGB)
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
@@ -50,7 +51,7 @@ import RayTracing.Object.Material
 import RayTracing.Object.Shape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
-import System.Random.Stateful (RandomGenM, STGenM, randomRM, runSTGen)
+import System.Random.Stateful (STGenM, randomRM, runSTGen)
 
 type BVH :: Type -> Type
 newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
@@ -228,23 +229,22 @@ data BVHScene' sh mat = Scene
 rayColour ::
   ( Hittable sh
   , Material mat
-  , RandomGenM g r m
+  , RandomGen g
   ) =>
   -- | Threshould to reagard as zero
   Double ->
   BVHScene' sh mat ->
-  g ->
   Int ->
   Ray ->
-  m (Pixel RGB Double)
+  State g (Pixel RGB Double)
 {-# INLINE rayColour #-}
-rayColour eps Scene {..} g = go
+rayColour eps Scene {..} = go
   where
     {-# INLINE go #-}
     go !lvl r
       | lvl <= 0 = pure 0.0
       | Just (hit, obj) <- nearestHit (Just eps) Nothing r objects = do
-          runMaybeT (scatter obj hit r g) >>= \case
+          runMaybeT (scatter obj hit r) >>= \case
             Nothing -> pure 0.0
             Just (attenuation, scattered) ->
               (attenuation .*) <$> go (lvl - 1) scattered
