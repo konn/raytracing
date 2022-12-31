@@ -64,7 +64,7 @@ import RayTracing.Ray
 import RayTracing.Texture
 import RayTracing.Texture.Image (ImageTexture' (..), loadImageTexture)
 import System.Random
-import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM, runStateGenT_)
+import System.Random.Stateful (StateGenM (..), randomRM, runStateGenT_)
 import Text.Read (readMaybe)
 
 default ([])
@@ -322,7 +322,7 @@ mkScene Earth Options {..} = do
   let earth = Lambertian earthmap
       sph1 = Sphere {center = p3 (0, 0, 0), radius = 2}
       objs = [MkSomeObject sph1 earth]
-  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
+  objects <- hoist generalize $ fromObjectsWithBucket bucketSize objs
   pure
     Scene
       { objects
@@ -340,7 +340,7 @@ mkScene TwoSpheres Options {..} = do
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
       objs = [MkSomeObject sph1 checker, MkSomeObject sph2 checker]
-  objects <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
+  objects <- hoist generalize $ fromObjectsWithBucket bucketSize objs
   pure
     Scene
       { objects
@@ -367,7 +367,7 @@ mkScene RandomScene Options {..} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
+  !bvh <- hoist generalize $ fromObjectsWithBucket bucketSize objs
   pure
     Scene
       { objects = bvh
@@ -403,7 +403,7 @@ mkScene RayCharles Options {..} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket bucketSize objs) StateGenM
+  !bvh <- hoist generalize $ fromObjectsWithBucket bucketSize objs
   pure
     Scene
       { objects = bvh

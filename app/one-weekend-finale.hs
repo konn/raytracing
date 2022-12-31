@@ -15,6 +15,7 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (forM_, guard, when, (<=<))
+import Control.Monad.Morph (generalize, hoist)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Control.Monad.Trans.State.Strict (State)
@@ -57,7 +58,7 @@ import RayTracing.Object.Sphere
 import RayTracing.Ray
 import RayTracing.Texture
 import System.Random
-import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM, runStateGen_)
+import System.Random.Stateful (StateGenM (..), randomRM, runStateGen_)
 import Text.Read (readMaybe)
 
 default ([])
@@ -305,7 +306,7 @@ mkScene Options {} = do
             , MkSomeObject sphere2 material2
             , MkSomeObject sphere3 material3
             ]
-  !bvh <- applyRandomGenM (fromObjectsWithBucket 4 objs) StateGenM
+  !bvh <- hoist generalize $ fromObjectsWithBucket 4 objs
   pure
     Scene
       { objects = bvh

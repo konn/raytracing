@@ -8,7 +8,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedDatatypes #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas -fsimpl-tick-factor=1000 #-}
 
 module RayTracing.BVH (
   BVH (),
@@ -25,11 +25,11 @@ module RayTracing.BVH (
 ) where
 
 import Control.Foldl qualified as L
-import Control.Lens (view)
+import Control.Lens (Identity (..), view)
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict
 import Control.Monad.Trans.Maybe (MaybeT (..))
-import Control.Monad.Trans.State.Strict (State)
+import Control.Monad.Trans.State.Strict (State, StateT (..))
 import Data.Image.Types (Pixel, RGB)
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
@@ -51,7 +51,7 @@ import RayTracing.Object.Material
 import RayTracing.Object.Shape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
-import System.Random.Stateful (STGenM, randomRM, runSTGen)
+import System.Random.Stateful (StateGenM (..), randomRM)
 
 type BVH :: Type -> Type
 newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
@@ -77,16 +77,20 @@ depth bvh = go (unBVH bvh)
     go (Branch# _ _ l r) =
       max (go l) (go r) + 1
 
-fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> g -> (BVH a, g)
+fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> State g (BVH a)
 {-# INLINE fromObjects #-}
 fromObjects = fromObjectsWithBucket 4
 
-fromObjectsWithBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> t a -> g -> (BVH a, g)
+runStateST :: (forall s. StateT r (ST s) a) -> State r a
+{-# INLINE runStateST #-}
+runStateST f = StateT $ \r -> Identity $ runST (runStateT f r)
+
+fromObjectsWithBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> t a -> State g (BVH a)
 {-# INLINE fromObjectsWithBucket #-}
 fromObjectsWithBucket siz hits
-  | null hits = (BVH Empty#,)
-  | otherwise = flip runSTGen $ \g -> do
-      buildBVH' (max 1 siz) g
+  | null hits = pure (BVH Empty#)
+  | otherwise = runStateST $ do
+      buildBVH' (max 1 siz)
         =<< HV.unsafeThaw
         =<< L.foldM
           ( L.premapM
@@ -103,15 +107,14 @@ data P a = P
 buildBVH' ::
   (RandomGen g) =>
   Int ->
-  STGenM g s ->
   HV.MVector U.MVector V.MVector s (BoundingBox, a) ->
-  ST s (BVH a)
+  StateT g (ST s) (BVH a)
 {-# INLINE buildBVH' #-}
-buildBVH' bucketSize g = fmap (\p -> BVH (bvh# p)) . go
+buildBVH' bucketSize = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
-      i <- randomRM (0 :: Word8, 2) g
+      i <- randomRM (0 :: Word8, 2) StateGenM
       let cmp = case i of
             0 -> comparing $ view _x . lowerBound . fst
             1 -> comparing $ view _y . lowerBound . fst

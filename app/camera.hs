@@ -13,8 +13,8 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (guard, (<=<))
-import Control.Monad.ST.Strict (ST)
 import Control.Monad.Trans.Reader (ReaderT (..))
+import Control.Monad.Trans.State.Strict (State)
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
 import Data.Generics.Labels ()
@@ -44,7 +44,7 @@ import RayTracing.Object hiding (Scene, rayColour)
 import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
-import System.Random.Stateful (STGenM, applySTGen, runSTGen_)
+import System.Random.Stateful (runStateGen_)
 import Text.Read (readMaybe)
 
 main :: IO ()
@@ -240,7 +240,7 @@ mkImage g0 opts@Options {..} =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
       (gScene, g') = split g0
-      scene = runSTGen_ gScene $ mkScene opts
+      scene = runStateGen_ gScene $ const $ mkScene opts
       sz = Sz2 imageHeight imageWidth
       aCamera =
         mkCamera $
@@ -265,8 +265,8 @@ mkImage g0 opts@Options {..} =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => Options -> STGenM g s -> ST s Scene
-mkScene Options {..} g = do
+mkScene :: RandomGen g => Options -> State g Scene
+mkScene Options {..} = do
   let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
       groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
       centerMaterial = Lambertian $ MkAttn 0.1 0.2 0.5
@@ -286,7 +286,7 @@ mkScene Options {..} g = do
           ++ [ MkSomeObject hollowLeftSphere leftMaterial
              | hollow
              ]
-  objects <- applySTGen (fromObjectsWithBucket 4 objs) g
+  objects <- fromObjectsWithBucket 4 objs
   pure
     Scene
       { objects = objects
