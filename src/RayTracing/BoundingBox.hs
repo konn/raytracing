@@ -55,6 +55,7 @@ instance Semigroup BoundingBox where
       }
 
 hitsBox :: Ray -> BoundingBox -> Maybe Double -> Maybe Double -> Bool
+{-# INLINE hitsBox #-}
 hitsBox Ray {..} MkBoundingBox {..} mtmin0 mtmax1 =
   isJust $
     foldlM step (St.toStrict mtmin0 :!: St.toStrict mtmax1) $
@@ -62,6 +63,7 @@ hitsBox Ray {..} MkBoundingBox {..} mtmin0 mtmax1 =
         <$> ((:!:) <$> unP rayOrigin <*> rayDirection)
         <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
   where
+    {-# INLINE step #-}
     step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) = do
       guard $ d /= 0
       let t0 :.. t1 = mkIntvl ((lb - o) / d) ((ub - o) / d)
