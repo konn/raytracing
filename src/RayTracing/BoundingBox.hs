@@ -15,7 +15,6 @@ module RayTracing.BoundingBox (
 ) where
 
 import Control.Lens ((^.))
-import Control.Monad (guard)
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
