@@ -466,10 +466,13 @@ test-suite raytracing-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      RayTracing.BoundingBoxSpec
       Paths_raytracing
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
   build-depends:
       adjunctions
     , base >=4.7 && <5
@@ -495,6 +498,8 @@ test-suite raytracing-test
     , rio-orphans
     , semigroups
     , strict
+    , tasty
+    , tasty-inspection-testing
     , transformers
     , vector
     , vector-algorithms

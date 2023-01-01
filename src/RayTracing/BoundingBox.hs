@@ -16,6 +16,7 @@ module RayTracing.BoundingBox (
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
+import Data.Bifunctor qualified as Bi
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
@@ -56,13 +57,20 @@ instance Semigroup BoundingBox where
 
 hitsBox :: Ray -> BoundingBox -> Maybe Double -> Maybe Double -> Bool
 {-# INLINE hitsBox #-}
-hitsBox Ray {..} MkBoundingBox {..} mtmin0 mtmax1 =
-  isJust $
-    foldlM step (St.toStrict mtmin0 :!: St.toStrict mtmax1) $
-      (:!:)
-        <$> ((:!:) <$> unP rayOrigin <*> rayDirection)
-        <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
+hitsBox = go
   where
+    {-# INLINE go #-}
+    go Ray {..} MkBoundingBox {..} =
+      St.curry
+        ( isJust
+            . flip
+              (foldlM step)
+              ( (:!:)
+                  <$> ((:!:) <$> unP rayOrigin <*> rayDirection)
+                  <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
+              )
+            . Bi.bimap St.toStrict St.toStrict
+        )
     {-# INLINE step #-}
     step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) = do
       guard $ d /= 0
