@@ -15,6 +15,7 @@ module RayTracing.BoundingBox (
 ) where
 
 import Control.Lens ((^.))
+import Control.Monad (guard)
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
@@ -61,13 +62,14 @@ hitsBox Ray {..} MkBoundingBox {..} mtmin0 mtmax1 =
         <$> ((:!:) <$> unP rayOrigin <*> rayDirection)
         <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
   where
-    step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) =
+    step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) = do
+      guard $ d /= 0
       let t0 :.. t1 = mkIntvl ((lb - o) / d) ((ub - o) / d)
           !tmin = StMay.maybe t0 (max t0) mtmin
           !tmax = StMay.maybe t1 (min t1) mtmax
-       in if tmin < tmax
-            then Just $ StMay.Just tmin :!: StMay.Just tmax
-            else Nothing
+      if tmin < tmax
+        then Just $ StMay.Just tmin :!: StMay.Just tmax
+        else Nothing
 
 data Interval :: UnliftedType where
   (:..) :: {-# UNPACK #-} !Double -> {-# UNPACK #-} !Double -> Interval
