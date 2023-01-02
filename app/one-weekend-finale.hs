@@ -299,12 +299,12 @@ mkScene Options {} = do
   balls <- execWriterT generateBalls
   let objs =
         FML.cons
-          (MkSomeObject ground groundMaterial)
+          (mkSomeObject ground groundMaterial)
           balls
           <> FML.fromList
-            [ MkSomeObject sphere1 material1
-            , MkSomeObject sphere2 material2
-            , MkSomeObject sphere3 material3
+            [ mkSomeObject sphere1 material1
+            , mkSomeObject sphere2 material2
+            , mkSomeObject sphere3 material3
             ]
   !bvh <- hoist generalize $ fromObjectsWithBinBucket 16 4 objs
   pure
@@ -329,12 +329,12 @@ mkScene Options {} = do
             chooseM
               [
                 ( 7.5
-                , pure . MkSomeObject sphere . Lambertian
+                , pure . mkSomeObject sphere . Lambertian
                     <$> ((*) <$> randomAtten (0, 1.0) <*> randomAtten (0, 1.0))
                 )
               ,
                 ( 1.0
-                , fmap (pure . MkSomeObject sphere) . FuzzyMetal
+                , fmap (pure . mkSomeObject sphere) . FuzzyMetal
                     <$> randomAtten (0.5, 1.0)
                     <*> randomRM (0, 0.5) StateGenM
                 )
@@ -342,15 +342,15 @@ mkScene Options {} = do
                 ( 0.1
                 , do
                     glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
-                    pure [MkSomeObject sphere glass]
+                    pure [mkSomeObject sphere glass]
                 )
               ,
                 ( 0.05
                 , do
                     glass <- Dielectric <$> randomRM (1.5, 1.7) StateGenM
                     pure
-                      [ MkSomeObject sphere glass
-                      , MkSomeObject (sphere & #radius *~ -0.9) glass
+                      [ mkSomeObject sphere glass
+                      , mkSomeObject (sphere & #radius *~ -0.9) glass
                       ]
                 )
               ]
