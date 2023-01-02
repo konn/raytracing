@@ -47,6 +47,7 @@ import Data.Vector.Unboxed qualified as U
 import Data.Word (Word8)
 import GHC.Exts (UnliftedType)
 import GHC.Generics
+import Graphics.ColorModel qualified as C
 import Linear (_x, _y, _z)
 import RayTracing.BoundingBox
 import RayTracing.Object (Object (..), SomeObject)
@@ -270,8 +271,11 @@ rayColour eps Scene {..} = go
     go !lvl r
       | lvl <= 0 = pure 0.0
       | Just (hit, obj) <- nearestHit (Just eps) Nothing r objects = do
+          let emission =
+                C.Pixel $
+                  emitted obj (textureCoordinate hit) (coord hit)
           runMaybeT (scatter obj hit r) >>= \case
-            Nothing -> pure 0.0
+            Nothing -> pure emission
             Just (attenuation, scattered) ->
-              (attenuation .*) <$> go (lvl - 1) scattered
+              (emission +) . (attenuation .*) <$> go (lvl - 1) scattered
       | otherwise = pure $ background r

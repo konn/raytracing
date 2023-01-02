@@ -21,8 +21,10 @@ module RayTracing.Object.Material (
   FuzzyMetal (..),
   SomeMaterial (..),
   Dielectric (..),
+  DiffuseLight (..),
 ) where
 
+import Control.Applicative (Alternative (..))
 import Control.Lens ((^.))
 import Control.Monad (guard, join)
 import Control.Monad.Trans.Class (MonadTrans (..))
@@ -37,6 +39,7 @@ import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Generics (Generic, Generic1)
 import Graphics.ColorModel
 import Linear
+import Linear.Affine (Point)
 import Linear.Direction
 import RayTracing.Object.Shape (HitRecord (..))
 import RayTracing.Ray
@@ -93,6 +96,9 @@ instance Material SomeMaterial where
 
 class Material a where
   scatter :: RandomGen g => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)
+  emitted :: a -> Point V2 Double -> Point V3 Double -> Color RGB Double
+  emitted = const $ const $ const 0
+  {-# INLINE emitted #-}
 
 newtype Lambertian txt = Lambertian {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
@@ -199,3 +205,12 @@ instance Material Dielectric where
             refract h di normal (dir $ r ^. #rayDirection) thresh
         scattered = Ray {rayOrigin = coord, rayDirection = scat}
     pure (MkAttn 1.0 1.0 1.0, scattered)
+
+newtype DiffuseLight txt = DiffuseLight {emit :: txt}
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
+
+instance Texture txt => Material (DiffuseLight txt) where
+  scatter = const $ const $ const empty
+  {-# INLINE scatter #-}
+  emitted DiffuseLight {..} = colorAt emit
+  {-# INLINE emitted #-}

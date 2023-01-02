@@ -78,10 +78,13 @@ rayColour eps Scene {..} = go
       | depth <= 0 = pure 0.0
       | Just (hit, obj) <-
           withNearestHitWithin (Just eps) Nothing r objects = do
+          let emission =
+                Pixel $
+                  emitted obj (textureCoordinate hit) (coord hit)
           runMaybeT (scatter obj hit r) >>= \case
-            Nothing -> pure 0.0
+            Nothing -> pure emission
             Just (attenuation, scattered) ->
-              (attenuation .*) <$> go (depth - 1) scattered
+              (emission +) . (attenuation .*) <$> go (depth - 1) scattered
       | otherwise = pure $ background r
 
 type Scene = SceneOf StdShape SomeMaterial
