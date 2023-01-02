@@ -2,11 +2,11 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module RayTracing.Object (
-  Object (.., MkSomeObject),
+  Object (..),
+  mkSomeObject,
   SomeObject,
   SceneOf (..),
   Scene,
@@ -26,6 +26,7 @@ import Data.Image.Types
 import GHC.Generics (Generic, Generic1)
 import RayTracing.Object.Material
 import RayTracing.Object.Shape
+import RayTracing.Object.StdShape
 import RayTracing.Ray
 import System.Random.Stateful (RandomGen)
 
@@ -45,15 +46,14 @@ instance Material mat => Material (Object shape mat) where
   scatter = scatter . material
   {-# INLINE scatter #-}
 
-type SomeObject = Object SomeHittable SomeMaterial
+type SomeObject = Object StdShape SomeMaterial
 
-pattern MkSomeObject ::
-  () =>
-  (Hittable obj, Material a) =>
+mkSomeObject ::
+  (ToStdShape obj, Material a) =>
   obj ->
   a ->
-  Object SomeHittable SomeMaterial
-pattern MkSomeObject shape mat = Object (MkSomeHittable shape) (MkSomeMaterial mat)
+  Object StdShape SomeMaterial
+mkSomeObject shape mat = Object (toStdShape shape) (MkSomeMaterial mat)
 
 data SceneOf sh mat = Scene
   { objects :: ![Object sh mat]
@@ -84,7 +84,7 @@ rayColour eps Scene {..} = go
               (attenuation .*) <$> go (depth - 1) scattered
       | otherwise = pure $ background r
 
-type Scene = SceneOf SomeHittable SomeMaterial
+type Scene = SceneOf StdShape SomeMaterial
 
 instance Bifunctor Object where
   bimap = bimapDefault

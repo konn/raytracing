@@ -38,6 +38,7 @@ library
       RayTracing.Object.Material
       RayTracing.Object.Shape
       RayTracing.Object.Sphere
+      RayTracing.Object.StdShape
       RayTracing.Ray
       RayTracing.Texture
       RayTracing.Texture.Image
@@ -51,6 +52,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -59,6 +61,7 @@ library
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -66,6 +69,7 @@ library
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -88,6 +92,7 @@ executable blue-to-white
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -96,6 +101,7 @@ executable blue-to-white
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -103,6 +109,7 @@ executable blue-to-white
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -126,6 +133,7 @@ executable camera
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -134,6 +142,7 @@ executable camera
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -141,6 +150,7 @@ executable camera
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -165,6 +175,7 @@ executable diffuse
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -173,6 +184,7 @@ executable diffuse
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -180,6 +192,7 @@ executable diffuse
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -203,6 +216,7 @@ executable gradient-with-simple-sphere
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -211,6 +225,7 @@ executable gradient-with-simple-sphere
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -218,6 +233,7 @@ executable gradient-with-simple-sphere
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -241,6 +257,7 @@ executable metal-spheres
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -249,6 +266,7 @@ executable metal-spheres
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -256,6 +274,7 @@ executable metal-spheres
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -279,6 +298,7 @@ executable metals-and-glasses
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -287,6 +307,7 @@ executable metals-and-glasses
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -294,6 +315,7 @@ executable metals-and-glasses
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -309,14 +331,16 @@ executable metals-and-glasses
   default-language: Haskell2010
 
 executable next-week
-  main-is: next-week.hs
+  main-is: Main.hs
   other-modules:
+      Options
       Paths_raytracing
   hs-source-dirs:
-      app
+      app/next-week
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -325,6 +349,7 @@ executable next-week
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -332,6 +357,7 @@ executable next-week
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -356,6 +382,7 @@ executable one-weekend-finale
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -364,6 +391,7 @@ executable one-weekend-finale
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -371,6 +399,7 @@ executable one-weekend-finale
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -395,6 +424,7 @@ executable spheres
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -403,6 +433,7 @@ executable spheres
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -410,6 +441,7 @@ executable spheres
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -433,6 +465,7 @@ executable spheres-antialias
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -441,6 +474,7 @@ executable spheres-antialias
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -448,6 +482,7 @@ executable spheres-antialias
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random
@@ -475,6 +510,7 @@ test-suite raytracing-test
       tasty-discover:tasty-discover
   build-depends:
       adjunctions
+    , barbies
     , base >=4.7 && <5
     , bytestring
     , bytestring-trie
@@ -483,6 +519,7 @@ test-suite raytracing-test
     , fmlist
     , foldl
     , generic-lens
+    , higgledy
     , hybrid-vectors
     , integer-roots
     , lens
@@ -490,6 +527,7 @@ test-suite raytracing-test
     , massiv
     , massiv-io
     , mmorph
+    , named
     , optparse-applicative
     , profunctors
     , random

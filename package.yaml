@@ -22,6 +22,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - adjunctions
+- barbies
 - bytestring
 - bytestring-trie
 - distributive
@@ -29,6 +30,7 @@ dependencies:
 - fmlist
 - foldl
 - generic-lens
+- higgledy
 - hybrid-vectors
 - integer-roots
 - lens
@@ -36,6 +38,7 @@ dependencies:
 - massiv
 - massiv-io
 - mmorph
+- named
 - optparse-applicative
 - profunctors
 - random
@@ -165,8 +168,8 @@ executables:
     - scientific
 
   next-week:
-    main:                next-week.hs
-    source-dirs:         app
+    main:                Main.hs
+    source-dirs:         app/next-week
     ghc-options:
     - -threaded
     - -rtsopts

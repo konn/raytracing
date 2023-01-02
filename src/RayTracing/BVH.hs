@@ -52,6 +52,7 @@ import RayTracing.BoundingBox
 import RayTracing.Object (Object (..), SomeObject)
 import RayTracing.Object.Material
 import RayTracing.Object.Shape
+import RayTracing.Object.StdShape (StdShape)
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
 import System.Random.Stateful (StateGenM (..), randomRM)
@@ -243,7 +244,7 @@ size# (Leaf# _ v) = V.length v
 size# (Branch# n _ _ _) = n
 size# Empty# = 0
 
-type Scene = BVHScene' SomeHittable SomeMaterial
+type Scene = BVHScene' StdShape SomeMaterial
 
 data BVHScene' sh mat = Scene
   { objects :: !(BVH (Object sh mat))

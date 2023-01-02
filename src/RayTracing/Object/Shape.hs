@@ -16,9 +16,11 @@ module RayTracing.Object.Shape (
 import Control.Arrow ((&&&))
 import Control.Monad (join)
 import Data.FMList (FMList)
+import Data.Kind (Constraint)
 import Data.List (foldl')
 import Data.Strict qualified as Strict
 import Data.Strict.Maybe qualified as StM
+import GHC.Exts (TYPE)
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
@@ -53,6 +55,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
         | otherwise = invert outNormal
    in Hit {..}
 
+type Hittable :: TYPE rep -> Constraint
 class Hittable obj where
   hitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Maybe HitRecord
   boundingBox :: obj -> Maybe BoundingBox
