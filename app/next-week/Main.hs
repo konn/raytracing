@@ -140,8 +140,16 @@ p2 = P . uncurry V2
 
 mkScene :: RandomGen g => SceneName -> Options -> StateT g IO Scene
 mkScene Perlin Options {..} = do
-  pertext <- Lambertian <$> hoist generalize randomPerlinNoise
-  let sph = Sphere {center = p3 (0, 2, 0), radius = 2}
+  perlinSeed <- hoist generalize randomPerlinSeed
+  let pertext =
+        Lambertian
+          PerlinMerble
+            { turbulenceDepth = 7
+            , turbulenceScale = 10.0
+            , coordPhase = 4.0 *^ normalize (V3 0 1.0 1.0)
+            , ..
+            }
+      sph = Sphere {center = p3 (0, 2, 0), radius = 2}
       ground = Sphere {radius = 1000, center = p3 (0, -1000, 0)}
       objs = [mkSomeObject ground pertext, mkSomeObject sph pertext]
   objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs

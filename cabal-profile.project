@@ -1,0 +1,26 @@
+import: cabal.project.local
+with-compiler: ghc-9.4.4
+packages: *.cabal
+
+jobs: $ncpus
+project-file: cabal-profile.project
+ignore-project: False
+profiling: true
+library-profiling: True
+executable-profiling: True
+optimization: 2
+documentation: False
+
+package *
+  documentation: False
+  ghc-options: -fno-prof-late -fno-prof-auto
+
+package raytracing
+  ghc-options: -fprof-late-inline -fno-prof-auto
+  library-profiling: True
+  executable-profiling: True
+
+allow-newer: 
+  bytestring-trie:base,
+  named:base
+

@@ -1,4 +1,7 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | Directional (unit) vectors, as provided in diagrams-lib.
 module Linear.Direction (
@@ -20,6 +23,8 @@ module Linear.Direction (
 ) where
 
 import Data.Coerce (coerce)
+import Data.Vector.Unboxed qualified as U
+import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Generics (Generic, Generic1)
 import Linear
 
@@ -77,3 +82,9 @@ invert = Dir . fmap negate . unDir
 
 reflectAround :: Num a => Dir V3 a -> V3 a -> V3 a
 reflectAround (Dir n) v = v ^-^ 2 * n `dot` v *^ n
+
+derivingUnbox
+  "Dir"
+  [t|forall v a. (U.Unbox (v a)) => Dir v a -> v a|]
+  [|_unDir|]
+  [|Dir|]
