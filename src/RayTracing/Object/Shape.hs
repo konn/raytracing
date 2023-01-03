@@ -1,8 +1,10 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module RayTracing.Object.Shape (
@@ -20,18 +22,25 @@ module RayTracing.Object.Shape (
   xyPlane,
   yzPlane,
   zxPlane,
+  Box (..),
+  Rotate (Rotate, rotation, original),
+  Translate (Translate, displacement, orig),
 ) where
 
 import Control.Applicative (liftA2)
-import Control.Arrow ((&&&))
-import Control.Lens (both, (%~), (^.))
+import Control.Arrow ((&&&), (>>>))
+import Control.Lens (Traversable1 (..), both, view, (%~), (+~), (.~), (^.))
 import Control.Monad (guard, join)
-import Control.Monad.Zip (munzip)
+import Control.Monad.Zip (munzip, mzip)
+import Data.Coerce (coerce)
 import Data.FMList (FMList)
 import Data.Function ((&))
+import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint)
 import Data.List (foldl')
+import Data.Semigroup (Max (..), Min (..))
+import Data.Semigroup.Foldable (fold1)
 import Data.Strict qualified as Strict
 import Data.Strict.Maybe qualified as StM
 import GHC.Exts (TYPE)
@@ -39,7 +48,7 @@ import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
 import Linear.Direction
-import RIO (foldMapM)
+import RIO (NonEmpty (..), foldMapM)
 import RayTracing.BoundingBox
 import RayTracing.Ray (Ray (..), rayAt)
 
@@ -66,7 +75,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
   let frontFace = origDir `dot` unDir outNormal < 0
       normal
         | frontFace = outNormal
-        | otherwise = invert outNormal
+        | otherwise = negateD outNormal
    in Hit {..}
 
 type Hittable :: TYPE rep -> Constraint
@@ -189,8 +198,8 @@ xyPlane section bounds =
         , planeCoordDir = V2 (V3 1 0 0) (V3 0 1 0)
         , planeBoundingBox =
             MkBoundingBox
-              { upperBound = P $ V3 (ubs ^. _x) (ubs ^. _y) (section + 1e-5)
-              , lowerBound = P $ V3 (lbs ^. _x) (lbs ^. _y) (section - 1e-5)
+              { upperBound = P $ V3 (ubs ^. _x) (ubs ^. _y) (section + 1e-4)
+              , lowerBound = P $ V3 (lbs ^. _x) (lbs ^. _y) (section - 1e-4)
               }
         }
 
@@ -204,8 +213,8 @@ yzPlane section bounds =
         , planeCoordDir = V2 (V3 0 1 0) (V3 0 0 1)
         , planeBoundingBox =
             MkBoundingBox
-              { upperBound = P $ V3 (section + 1e-5) (ubs ^. _x) (ubs ^. _y)
-              , lowerBound = P $ V3 (section - 1e-5) (lbs ^. _x) (lbs ^. _y)
+              { upperBound = P $ V3 (section + 1e-4) (ubs ^. _x) (ubs ^. _y)
+              , lowerBound = P $ V3 (section - 1e-4) (lbs ^. _x) (lbs ^. _y)
               }
         }
 
@@ -219,8 +228,8 @@ zxPlane section bounds =
         , planeCoordDir = V2 (V3 0 0 1) (V3 1 0 0)
         , planeBoundingBox =
             MkBoundingBox
-              { upperBound = P $ V3 (ubs ^. _y) (section + 1e-5) (ubs ^. _x)
-              , lowerBound = P $ V3 (lbs ^. _y) (section - 1e-5) (lbs ^. _x)
+              { upperBound = P $ V3 (ubs ^. _y) (section + 1e-4) (ubs ^. _x)
+              , lowerBound = P $ V3 (lbs ^. _y) (section - 1e-4) (lbs ^. _x)
               }
         }
 
@@ -237,7 +246,7 @@ calcPlaneBoundingBox n off uvDir bd =
       calcBound !l !r
         | nearZero (l - r) =
             let !m = (l + r) / 2
-                !eps = 1e-5
+                !eps = 1e-4
              in (m - eps, m + eps)
         | l < r = (l, r)
         | otherwise = (r, l)
@@ -290,4 +299,112 @@ instance Hittable Plane where
             <*> uv0
     pure $! mkHitWithOutwardNormal rayDirection p planeNormal hitTime uv
   boundingBox = Just . planeBoundingBox
+  {-# INLINE boundingBox #-}
+
+data Translate a = Translate'
+  { displacement_ :: {-# UNPACK #-} !(V3 Double)
+  , original_ :: !a
+  , tBBox :: !(Maybe BoundingBox)
+  }
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
+
+{-# COMPLETE Translate #-}
+
+pattern Translate :: Hittable a => () => V3 Double -> a -> Translate a
+pattern Translate {displacement, orig} <- Translate' displacement orig _
+  where
+    Translate displacement original =
+      Translate'
+        { displacement_ = displacement
+        , original_ = original
+        , tBBox = translatedBBox displacement original
+        }
+
+translatedBBox :: Hittable a => V3 Double -> a -> Maybe BoundingBox
+translatedBBox disp =
+  boundingBox
+    >>> fmap
+      (#lowerBound . _Point +~ disp >>> #upperBound . _Point +~ disp)
+
+instance Hittable a => Hittable (Translate a) where
+  {-# INLINE hitWithin #-}
+  hitWithin = \case
+    Translate' {..} ->
+      \mtmin mtmax ray ->
+        hitWithin
+          original_
+          mtmin
+          mtmax
+          (ray & #rayOrigin %~ (.-^ displacement_))
+          <&> #coord . _Point +~ displacement_
+          <&> makeNormalOppositeTo (ray ^. #rayDirection)
+  {-# INLINE boundingBox #-}
+  boundingBox = tBBox
+
+makeNormalOppositeTo :: V3 Double -> HitRecord -> HitRecord
+{-# INLINE makeNormalOppositeTo #-}
+makeNormalOppositeTo d = do
+  n <- view #normal
+  let !frontFace = unDir n `dot` d < 0
+  #frontFace .~ frontFace >>> if frontFace then id else #normal %~ negateD
+
+data Rotate a = Rotate'
+  { rotation_, invRot_ :: {-# UNPACK #-} !(Quaternion Double)
+  , original_ :: a
+  , rBBox :: !(Maybe BoundingBox)
+  }
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
+
+{-# COMPLETE Rotate :: Rotate #-}
+
+pattern Rotate :: Hittable a => () => Quaternion Double -> a -> Rotate a
+pattern Rotate {rotation, original} <- Rotate' rotation _ original _
+  where
+    Rotate q o = Rotate' q (conjugate q) o (rotatedBBox q o)
+
+rotatedBBox :: Hittable a => Quaternion Double -> a -> Maybe BoundingBox
+{-# INLINE rotatedBBox #-}
+rotatedBBox rot =
+  boundingBox >>> fmap \MkBoundingBox {..} ->
+    let lrot = lowerBound & _Point %~ rotate rot
+        rrot = upperBound & _Point %~ rotate rot
+        (mins, maxs) =
+          munzip $
+            fold1 $
+              traverse1 (\(a, b) -> (Min a, Max a) :| [(Min b, Max b)]) $
+                liftA2 (,) (unP lrot) (unP rrot)
+     in MkBoundingBox
+          { upperBound = coerce maxs
+          , lowerBound = coerce mins
+          }
+
+instance Hittable a => Hittable (Rotate a) where
+  {-# INLINE hitWithin #-}
+  hitWithin Rotate' {..} tmin tmax ray = do
+    let !relativeRay =
+          ray
+            & #rayOrigin . _Point %~ rotate invRot_
+            & #rayDirection %~ rotate invRot_
+    hitWithin original_ tmin tmax relativeRay
+      <&> #normal %~ rotateD rotation_
+      <&> #coord . _Point %~ rotate rotation_
+      <&> makeNormalOppositeTo (ray ^. #rayDirection)
+  {-# INLINE boundingBox #-}
+  boundingBox = rBBox
+
+data Box = Box {start, end :: {-# UNPACK #-} !(Point V3 Double)}
+  deriving (Show, Eq, Ord, Generic)
+
+instance Hittable Box where
+  hitWithin Box {..} =
+    hitWithin
+      [ xyPlane (start ^. _z) $ mzip (start ^. _xy) (end ^. _xy)
+      , xyPlane (end ^. _z) $ mzip (start ^. _xy) (end ^. _xy)
+      , yzPlane (start ^. _x) $ mzip (start ^. _yz) (end ^. _yz)
+      , yzPlane (end ^. _x) $ mzip (start ^. _yz) (end ^. _yz)
+      , zxPlane (start ^. _y) $ mzip (start ^. _zx) (end ^. _zx)
+      , zxPlane (end ^. _y) $ mzip (start ^. _zx) (end ^. _zx)
+      ]
+  {-# INLINE hitWithin #-}
+  boundingBox = fmap pure . MkBoundingBox <$> start <*> end
   {-# INLINE boundingBox #-}

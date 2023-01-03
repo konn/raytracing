@@ -243,6 +243,7 @@ data SceneName
   | Earth
   | Perlin
   | SimpleLight
+  | CornellBox
   deriving (Show, Eq, Ord, Generic)
   deriving anyclass (Hashable)
 

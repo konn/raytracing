@@ -75,6 +75,7 @@ library
     , random
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -116,6 +117,7 @@ executable blue-to-white
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -158,6 +160,7 @@ executable camera
     , rio
     , rio-orphans
     , scientific
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -199,6 +202,7 @@ executable diffuse
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -240,6 +244,7 @@ executable gradient-with-simple-sphere
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -281,6 +286,7 @@ executable metal-spheres
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -322,6 +328,7 @@ executable metals-and-glasses
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -365,6 +372,7 @@ executable next-week
     , rio
     , rio-orphans
     , scientific
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -407,6 +415,7 @@ executable one-weekend-finale
     , rio
     , rio-orphans
     , scientific
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -448,6 +457,7 @@ executable spheres
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -489,6 +499,7 @@ executable spheres-antialias
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , transformers
@@ -534,6 +545,7 @@ test-suite raytracing-test
     , raytracing
     , rio
     , rio-orphans
+    , semigroupoids
     , semigroups
     , strict
     , tasty

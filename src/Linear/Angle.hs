@@ -6,6 +6,7 @@
 -- | Opaque angle type and their interface, inspired by diagrams-lib
 module Linear.Angle (
   Angle,
+  axisAngleA,
   rad,
   deg,
   turn,
@@ -18,13 +19,14 @@ module Linear.Angle (
   atanA,
 ) where
 
-import Control.Lens (AReview, Iso', coerced, iso, review)
+import Control.Lens (AReview, Iso', coerced, iso, review, view)
 import Data.Coerce (coerce)
 import Data.Distributive
 import Data.Functor.Rep (Co (..), Representable, collectRep, distributeRep)
 import Data.Monoid (Sum (..))
 import GHC.Generics (Generic, Generic1)
 import Linear
+import Linear.Direction
 
 newtype Angle a = Angle a
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
@@ -81,3 +83,7 @@ acosA = Angle . acos
 
 asinA :: Floating a => a -> Angle a
 asinA = Angle . asin
+
+axisAngleA :: (Floating a, Epsilon a) => Dir V3 a -> Angle a -> Quaternion a
+{-# INLINE axisAngleA #-}
+axisAngleA d = axisAngle (unDir d) . view rad

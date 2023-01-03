@@ -6,10 +6,11 @@
 -- | Directional (unit) vectors, as provided in diagrams-lib.
 module Linear.Direction (
   Dir,
+  dir3,
   dir,
   unDir,
   unsafeDir,
-  invert,
+  negateD,
   reflectAround,
   (*|),
   (|*),
@@ -20,8 +21,13 @@ module Linear.Direction (
   (|-^),
   (^-|),
   (|-|),
+  xDir,
+  yDir,
+  zDir,
+  rotateD,
 ) where
 
+import Control.Lens (coerced, (%~))
 import Data.Coerce (coerce)
 import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
@@ -76,9 +82,13 @@ unsafeDir :: v a -> Dir v a
 {-# INLINE unsafeDir #-}
 unsafeDir = Dir
 
-invert :: (Functor v, Num a) => Dir v a -> Dir v a
-{-# INLINE invert #-}
-invert = Dir . fmap negate . unDir
+negateD :: (Functor v, Num a) => Dir v a -> Dir v a
+{-# INLINE negateD #-}
+negateD = Dir . fmap negate . unDir
+
+rotateD :: (Conjugate a, RealFloat a) => Quaternion a -> Dir V3 a -> Dir V3 a
+{-# INLINE rotateD #-}
+rotateD = (coerced %~) . rotate
 
 reflectAround :: Num a => Dir V3 a -> V3 a -> V3 a
 reflectAround (Dir n) v = v ^-^ 2 * n `dot` v *^ n
@@ -88,3 +98,15 @@ derivingUnbox
   [t|forall v a. (U.Unbox (v a)) => Dir v a -> v a|]
   [|_unDir|]
   [|Dir|]
+
+dir3 :: (Floating a, Epsilon a) => a -> a -> a -> Dir V3 a
+{-# INLINE dir3 #-}
+dir3 = fmap (fmap dir) . V3
+
+xDir, yDir, zDir :: Floating a => Dir V3 a
+{-# INLINE xDir #-}
+xDir = Dir $ V3 1 0 0
+{-# INLINE yDir #-}
+yDir = Dir $ V3 0 1 0
+{-# INLINE zDir #-}
+zDir = Dir $ V3 0 0 1
