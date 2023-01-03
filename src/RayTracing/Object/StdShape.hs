@@ -1,10 +1,5 @@
 {-# LANGUAGE GHC2021 #-}
-{-# HLINT ignore "Use id" #-}
-{-# HLINT ignore "Redundant lambda" #-}
 {-# LANGUAGE LambdaCase #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
-{-# LANGUAGE UnliftedDatatypes #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module RayTracing.Object.StdShape (ToStdShape (..), StdShape (..)) where
 
@@ -16,7 +11,8 @@ import RayTracing.Object.Sphere (Sphere)
 
 data StdShape
   = ASphere {-# UNPACK #-} !Sphere
-  | Compound {-# UNPACK #-} ![StdShape]
+  | Rect {-# UNPACK #-} !Plane
+  | Compound ![StdShape]
   deriving (Show, Eq, Ord, Generic)
 
 type ToStdShape :: TYPE rep -> Constraint
@@ -28,10 +24,11 @@ instance ToStdShape a => ToStdShape [a] where
   {-# INLINE toStdShape #-}
   {-# SPECIALIZE instance ToStdShape [StdShape] #-}
   {-# SPECIALIZE instance ToStdShape [Sphere] #-}
+  {-# SPECIALIZE instance ToStdShape [Plane] #-}
 
 instance ToStdShape StdShape where
   {-# SPECIALIZE instance ToStdShape StdShape #-}
-  toStdShape = \a -> a
+  toStdShape = id
   {-# INLINE toStdShape #-}
 
 instance ToStdShape Sphere where
@@ -39,12 +36,19 @@ instance ToStdShape Sphere where
   toStdShape = ASphere
   {-# INLINE toStdShape #-}
 
+instance ToStdShape Plane where
+  {-# SPECIALIZE instance ToStdShape Plane #-}
+  toStdShape = Rect
+  {-# INLINE toStdShape #-}
+
 instance Hittable StdShape where
   hitWithin = \case
     ASphere sph -> hitWithin sph
     Compound ss -> hitWithin ss
+    Rect p -> hitWithin p
   {-# INLINE hitWithin #-}
   boundingBox = \case
     ASphere sph -> boundingBox sph
     Compound ss -> boundingBox ss
+    Rect p -> boundingBox p
   {-# INLINE boundingBox #-}

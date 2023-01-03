@@ -39,6 +39,7 @@ import Data.Traversable (mapAccumL)
 import Graphics.ColorModel
 import Linear
 import Linear.Affine (Point (..))
+import Linear.Angle
 import Math.NumberTheory.Roots (integerSquareRoot)
 import Options
 import Options.Applicative qualified as Opt
@@ -62,6 +63,7 @@ default ([])
 main :: IO ()
 main = do
   opts@Options {..} <- Opt.execParser cmdP
+  print opts
   g <- maybe getStdGen (pure . mkStdGen) randomSeed
   let (gScene, g') = split g
   theScene <- runStateGenT_ gScene $ const $ mkScene scene opts
@@ -70,6 +72,7 @@ main = do
   writeImage outputPath $ mkImage g' opts theScene
 
 toOutputPath :: SceneName -> FilePath
+toOutputPath SimpleLight = workspace </> "simple-light" FP.<.> defaultFormat
 toOutputPath RandomScene = workspace </> "final" FP.<.> defaultFormat
 toOutputPath TwoSpheres = workspace </> "two-spheres" FP.<.> defaultFormat
 toOutputPath RayCharles = workspace </> "ray-charles" FP.<.> defaultFormat
@@ -95,20 +98,28 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
           , Opt.command "ray-charles" (Opt.info (sceneOptionsP RayCharles presets) $ Opt.progDesc "Random scene in memorial with Ray Charles")
           , Opt.command "earth" (Opt.info (sceneOptionsP Earth presets) $ Opt.progDesc "Earthmap ball")
           , Opt.command "perlin" (Opt.info (sceneOptionsP Perlin presets) $ Opt.progDesc "Play with Perlin noise")
+          , Opt.command "simple-light" (Opt.info (sceneOptionsP SimpleLight presets) $ Opt.progDesc "Play with Simple Light")
           ]
 
 presets :: SceneName -> Defaults
 presets scn =
   let def0 = defaultOptions toOutputPath scn
    in case scn of
-        RandomScene -> def0
-        RayCharles -> def0
+        RandomScene -> def0 & HKD.field @"imageWidth" .~ pure 500
+        RayCharles -> def0 & HKD.field @"imageWidth" .~ pure 500
         TwoSpheres ->
           def0
             & HKD.field @"cameraOrigin" .~ pure (p3 (13, 2, 3))
             & HKD.field @"thinLens" .~ mempty
         Perlin -> def0
         Earth -> def0
+        SimpleLight ->
+          def0
+            & HKD.field @"samplesPerPixel" .~ pure 400
+            & HKD.field @"cameraOrigin" .~ pure (p3 (26, 3, 6))
+            & HKD.field @"lookingAt" .~ pure (p3 (0, 2, 0))
+            & HKD.field @"verticalFieldOfView" .~ pure (20.0 @@ deg)
+            & HKD.field @"thinLens" .~ pure Nothing
 
 mkImage :: RandomGen g => g -> Options -> Scene -> WordImage
 mkImage g0 Options {..} theScene =
@@ -139,6 +150,27 @@ p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
 mkScene :: RandomGen g => SceneName -> Options -> StateT g IO Scene
+mkScene SimpleLight Options {..} = do
+  perlinSeed <- hoist generalize randomPerlinSeed
+  let pertext =
+        Lambertian
+          PerlinMerble
+            { turbulenceScale = 10
+            , turbulenceDepth = 7
+            , perlinSeed = perlinSeed
+            , coordPhase = 4
+            }
+      ground = Sphere {radius = 1000, center = p3 (0, -1000, 0)}
+      ball = Sphere {radius = 2, center = p3 (0, 2, 0)}
+      light = DiffuseLight $ MkAttn 4 4 4
+      rect = xyPlane (-2) (V2 (3, 5) (1, 3))
+      objs =
+        [ mkSomeObject ground pertext
+        , mkSomeObject ball pertext
+        , mkSomeObject rect light
+        ]
+  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+  pure Scene {objects, background = const 0}
 mkScene Perlin Options {..} = do
   perlinSeed <- hoist generalize randomPerlinSeed
   let pertext =

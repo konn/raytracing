@@ -45,6 +45,8 @@ instance Hittable shape => Hittable (Object shape mat) where
 instance Material mat => Material (Object shape mat) where
   scatter = scatter . material
   {-# INLINE scatter #-}
+  emitted = emitted . material
+  {-# INLINE emitted #-}
 
 type SomeObject = Object StdShape SomeMaterial
 

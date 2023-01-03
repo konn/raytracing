@@ -93,6 +93,8 @@ data SomeMaterial where
 instance Material SomeMaterial where
   scatter = \case (MkSomeMaterial mat) -> scatter mat
   {-# INLINE scatter #-}
+  emitted = \case (MkSomeMaterial mat) -> emitted mat
+  {-# INLINE emitted #-}
 
 class Material a where
   scatter :: RandomGen g => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)

@@ -55,7 +55,7 @@ defaultOptions toOut scene =
     & field @"outputPath" .~ pure (toOut scene)
     & field @"cutoff" .~ pure 50
     & field @"samplesPerPixel" .~ pure 500
-    & field @"imageWidth" .~ pure 1200
+    & field @"imageWidth" .~ pure 400
     & field @"epsilon" .~ pure 0.001
     & field @"antialiasing" .~ pure Random
     & field @"aspectRatio" .~ pure (3 / 2)
@@ -236,7 +236,13 @@ optionDescription scene =
       )
     ! #scene (RawP $ pure scene)
 
-data SceneName = RandomScene | TwoSpheres | RayCharles | Earth | Perlin
+data SceneName
+  = RandomScene
+  | TwoSpheres
+  | RayCharles
+  | Earth
+  | Perlin
+  | SimpleLight
   deriving (Show, Eq, Ord, Generic)
   deriving anyclass (Hashable)
 
