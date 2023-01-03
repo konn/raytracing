@@ -164,10 +164,13 @@ mkScene SimpleLight Options {..} = do
       ball = Sphere {radius = 2, center = p3 (0, 2, 0)}
       light = DiffuseLight $ MkAttn 4 4 4
       rect = xyPlane (-2) (V2 (3, 5) (1, 3))
+      lamp = Sphere {radius = 1.5, center = p3 (0, 6.5, 0)}
+      blueLight = DiffuseLight $ 4 *^ ColorRGB 0.0 0.25 1.0
       objs =
         [ mkSomeObject ground pertext
         , mkSomeObject ball pertext
         , mkSomeObject rect light
+        , mkSomeObject lamp blueLight
         ]
   objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
   pure Scene {objects, background = const 0}
