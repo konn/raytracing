@@ -46,6 +46,7 @@ dependencies:
 - rio-orphans
 - semigroups
 - semigroupoids
+- splitmix
 - strict
 - transformers
 - vector

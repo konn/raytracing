@@ -52,6 +52,7 @@ library
       RayTracing.Texture.Image
       RayTracing.Texture.Noise.Perlin
       System.Random.Orphans
+      System.Random.Stateful.STUnbox
       System.Random.Utils
   other-modules:
       Paths_raytracing
@@ -85,6 +86,7 @@ library
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -127,6 +129,7 @@ executable blue-to-white
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -170,6 +173,7 @@ executable camera
     , scientific
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -212,6 +216,7 @@ executable diffuse
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -254,6 +259,7 @@ executable gradient-with-simple-sphere
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -296,6 +302,7 @@ executable metal-spheres
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -338,6 +345,7 @@ executable metals-and-glasses
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -382,6 +390,7 @@ executable next-week
     , scientific
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -425,6 +434,7 @@ executable one-weekend-finale
     , scientific
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -467,6 +477,7 @@ executable spheres
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -509,6 +520,7 @@ executable spheres-antialias
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , transformers
     , vector
@@ -555,6 +567,7 @@ test-suite raytracing-test
     , rio-orphans
     , semigroupoids
     , semigroups
+    , splitmix
     , strict
     , tasty
     , tasty-inspection-testing
