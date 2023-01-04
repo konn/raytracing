@@ -71,7 +71,8 @@ main = do
   writeImage outputPath $ mkImage g' opts theScene
 
 toOutputPath :: SceneName -> FilePath
-toOutputPath CornellBox = workspace </> "conell-box" FP.<.> defaultFormat
+toOutputPath CornellBox = workspace </> "cornell-box" FP.<.> defaultFormat
+toOutputPath CornellBoxSmoke = workspace </> "cornell-smoke" FP.<.> defaultFormat
 toOutputPath SimpleLight = workspace </> "simple-light" FP.<.> defaultFormat
 toOutputPath RandomScene = workspace </> "final" FP.<.> defaultFormat
 toOutputPath TwoSpheres = workspace </> "two-spheres" FP.<.> defaultFormat
@@ -100,6 +101,7 @@ cmdP = Opt.info (p <**> Opt.helper) $ Opt.progDesc "Renders spheres with diffusi
           , Opt.command "perlin" (Opt.info (sceneOptionsP Perlin presets) $ Opt.progDesc "Play with Perlin noise")
           , Opt.command "simple-light" (Opt.info (sceneOptionsP SimpleLight presets) $ Opt.progDesc "Play with Simple Light")
           , Opt.command "cornell" (Opt.info (sceneOptionsP CornellBox presets) $ Opt.progDesc "Play with Cornell box")
+          , Opt.command "cornell-smoke" (Opt.info (sceneOptionsP CornellBoxSmoke presets) $ Opt.progDesc "Play with Cornell box with smoke hexas in it")
           ]
 
 presets :: SceneName -> Defaults
@@ -122,6 +124,17 @@ presets scn =
             & HKD.field @"verticalFieldOfView" .~ pure (20.0 @@ deg)
             & HKD.field @"thinLens" .~ pure Nothing
         CornellBox ->
+          def0
+            & HKD.field @"binSize" .~ pure 128
+            & HKD.field @"bucketSize" .~ pure 8
+            & HKD.field @"aspectRatio" .~ pure 1.0
+            & HKD.field @"imageWidth" .~ pure 600
+            & HKD.field @"samplesPerPixel" .~ pure 200
+            & HKD.field @"cameraOrigin" .~ pure (p3 (278, 278, -800))
+            & HKD.field @"lookingAt" .~ pure (p3 (278, 278, 0))
+            & HKD.field @"verticalFieldOfView" .~ pure (40.0 @@ deg)
+            & HKD.field @"thinLens" .~ pure Nothing
+        CornellBoxSmoke ->
           def0
             & HKD.field @"binSize" .~ pure 128
             & HKD.field @"bucketSize" .~ pure 8
@@ -162,6 +175,39 @@ p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
 mkScene :: RandomGen g => SceneName -> Options -> StateT g IO Scene
+mkScene CornellBoxSmoke Options {..} = do
+  let red = Lambertian $ ColorRGB 0.65 0.05 0.05
+      white = Lambertian $ ColorRGB 0.73 0.73 0.73
+      green = Lambertian $ ColorRGB 0.12 0.45 0.15
+      light = DiffuseLight $ ColorRGB 15 15 15
+      leftWall = yzPlane 555 (V2 (0, 555) (0, 555))
+      rightWall = yzPlane 0 (V2 (0, 555) (0, 555))
+      ceilLight = zxPlane 554 (V2 (227, 332) (213, 343))
+      bottomWall = zxPlane 0 (V2 (0, 555) (0, 555))
+      topWall = zxPlane 555 (V2 (0, 555) (0, 555))
+      rearWall = xyPlane 555 (V2 (0, 555) (0, 555))
+      box1 =
+        Box (p3 (0, 0, 0)) (p3 (165, 330, 165))
+          & Rotate (axisAngleA yDir (15 @@ deg))
+          & Translate (V3 265 0 295)
+          & ConstantMedium 0.01
+      box2 =
+        Box (p3 (0, 0, 0)) (p3 (165, 165, 165))
+          & Rotate (axisAngleA yDir (-18 @@ deg))
+          & Translate (V3 130 0 65)
+          & ConstantMedium 0.005
+      objs =
+        [ mkSomeObject leftWall green
+        , mkSomeObject rightWall red
+        , mkSomeObject ceilLight light
+        , mkSomeObject bottomWall white
+        , mkSomeObject topWall white
+        , mkSomeObject rearWall white
+        , mkSomeObject box1 $ Isotropic $ ColorRGB 0 0 0
+        , mkSomeObject box2 $ Isotropic $ ColorRGB 1 1 1
+        ]
+  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+  pure Scene {objects, background = const 0}
 mkScene CornellBox Options {..} = do
   let red = Lambertian $ ColorRGB 0.65 0.05 0.05
       white = Lambertian $ ColorRGB 0.73 0.73 0.73

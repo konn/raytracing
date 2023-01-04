@@ -40,6 +40,7 @@ library
       RayTracing.Object.Shape
       RayTracing.Object.Shape.Box
       RayTracing.Object.Shape.Class
+      RayTracing.Object.Shape.ConstantMedium
       RayTracing.Object.Shape.Plane
       RayTracing.Object.Shape.Rotate
       RayTracing.Object.Shape.Sphere

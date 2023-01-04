@@ -22,6 +22,7 @@ module RayTracing.Object.Material (
   SomeMaterial (..),
   Dielectric (..),
   DiffuseLight (..),
+  Isotropic (..),
 ) where
 
 import Control.Applicative (Alternative (..))
@@ -216,3 +217,11 @@ instance Texture txt => Material (DiffuseLight txt) where
   {-# INLINE scatter #-}
   emitted DiffuseLight {..} = colorAt emit
   {-# INLINE emitted #-}
+
+newtype Isotropic txt = Isotropic {albedo :: txt}
+  deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
+
+instance Texture txt => Material (Isotropic txt) where
+  scatter Isotropic {..} h r = do
+    d <- applyRandomGenM randomPointOnUnitSphere StateGenM
+    pure (Attenuation $ colorAt albedo (h ^. #textureCoordinate) (h ^. #coord), Ray {rayOrigin = r ^. #rayOrigin, rayDirection = unDir d})

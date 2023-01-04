@@ -244,6 +244,7 @@ data SceneName
   | Perlin
   | SimpleLight
   | CornellBox
+  | CornellBoxSmoke
   deriving (Show, Eq, Ord, Generic)
   deriving anyclass (Hashable)
 

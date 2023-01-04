@@ -5,6 +5,7 @@ module RayTracing.Object.Shape.Sphere (Sphere (..)) where
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
+import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Foldable (find)
 import GHC.Generics
 import Linear
@@ -21,7 +22,7 @@ data Sphere = Sphere
   deriving (Show, Eq, Ord, Generic)
 
 instance Hittable Sphere where
-  hitWithin Sphere {..} tmin tmax r@Ray {..} = do
+  hitWithin Sphere {..} tmin tmax r@Ray {..} = MaybeT $ pure $ do
     let !oc = rayOrigin .-. center
         !a = quadrance rayDirection
         !b = oc `dot` rayDirection
