@@ -4,6 +4,8 @@
 module Main (main) where
 
 import Control.Lens
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.State.Strict (evalState)
 import Data.Image.Types
 import Data.Massiv.Array (Ix2 (..), Sz (..))
 import Data.Massiv.Array.IO (writeImage)
@@ -14,6 +16,7 @@ import Numeric.Utils
 import RIO.FilePath ((</>))
 import RayTracing.Object.Shape
 import RayTracing.Ray
+import System.Random (mkStdGen)
 
 main :: IO ()
 main = writeImage ("workspace" </> "spheres.png") anImage
@@ -33,7 +36,8 @@ anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->
 
 colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
-  | Just Hit {..} <- hitWithin obj 1e-3 Infinity r =
+  | Just Hit {..} <-
+      flip evalState (mkStdGen 42) $ runMaybeT $ hitWithin obj 1e-3 Infinity r =
       let n = unDir normal
        in 0.5 *^ PixelRGB (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =

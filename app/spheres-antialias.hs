@@ -5,6 +5,8 @@
 module Main (main) where
 
 import Control.Lens
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.State.Strict (evalState)
 import Data.Avg
 import Data.Generics.Labels ()
 import Data.Image.Types
@@ -53,7 +55,7 @@ mkImage g =
 
 colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
-  | Just Hit {..} <- hitWithin obj 1e-3 Infinity r =
+  | Just Hit {..} <- flip evalState (mkStdGen 42) $ runMaybeT $ hitWithin obj 1e-3 Infinity r =
       let n = unDir normal
        in 0.5 *^ PixelRGB (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =
