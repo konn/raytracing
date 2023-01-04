@@ -16,11 +16,9 @@ module RayTracing.BoundingBox (
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
-import Data.Bifunctor qualified as Bi
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
-import Data.Strict.Maybe qualified as StMay
 import Data.Strict.Tuple (Pair (..))
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Exts (UnliftedType)
@@ -55,7 +53,7 @@ instance Semigroup BoundingBox where
       , upperBound = max <$> upperBound l <*> upperBound r
       }
 
-hitsBox :: Ray -> BoundingBox -> Maybe Double -> Maybe Double -> Bool
+hitsBox :: Ray -> BoundingBox -> Double -> Double -> Bool
 {-# INLINE hitsBox #-}
 hitsBox = go
   where
@@ -69,16 +67,15 @@ hitsBox = go
                   <$> ((:!:) <$> unP rayOrigin <*> rayDirection)
                   <*> ((:!:) <$> unP lowerBound <*> unP upperBound)
               )
-            . Bi.bimap St.toStrict St.toStrict
         )
     {-# INLINE step #-}
     step (mtmin :!: mtmax) ((o :!: d) :!: (lb :!: ub)) = do
       guard $ d /= 0
       let t0 :.. t1 = mkIntvl ((lb - o) / d) ((ub - o) / d)
-          !tmin = StMay.maybe t0 (max t0) mtmin
-          !tmax = StMay.maybe t1 (min t1) mtmax
+          !tmin = max t0 mtmin
+          !tmax = min t1 mtmax
       if tmin < tmax
-        then Just $ StMay.Just tmin :!: StMay.Just tmax
+        then Just $ tmin :!: tmax
         else Nothing
 
 data Interval :: UnliftedType where

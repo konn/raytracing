@@ -37,13 +37,11 @@ import Data.FMList (FMList)
 import Data.Function ((&))
 import Data.Functor ((<&>))
 import Data.Generics.Labels ()
-import Data.Kind (Constraint)
 import Data.List (foldl')
 import Data.Semigroup (Max (..), Min (..))
 import Data.Semigroup.Foldable (fold1)
 import Data.Strict qualified as Strict
 import Data.Strict.Maybe qualified as StM
-import GHC.Exts (TYPE)
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
@@ -78,9 +76,8 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
         | otherwise = negateD outNormal
    in Hit {..}
 
-type Hittable :: TYPE rep -> Constraint
 class Hittable obj where
-  hitWithin :: obj -> Maybe Double -> Maybe Double -> Ray -> Maybe HitRecord
+  hitWithin :: obj -> Double -> Double -> Ray -> Maybe HitRecord
   boundingBox :: obj -> Maybe BoundingBox
 
 inRange :: Ord a => Maybe a -> Maybe a -> a -> Bool
@@ -123,8 +120,8 @@ toRec object record =
 
 withNearestHitWithin ::
   (Foldable t, Hittable obj) =>
-  Maybe Double ->
-  Maybe Double ->
+  Double ->
+  Double ->
   Ray ->
   t obj ->
   Maybe (HitRecord, obj)
@@ -133,7 +130,7 @@ withNearestHitWithin tmin tmax ray =
     . Strict.toLazy
     . foldl'
       ( \sofar obj ->
-          let tmax' = StM.maybe tmax (Just . nearestSoFar) sofar
+          let tmax' = StM.maybe tmax nearestSoFar sofar
            in StM.maybe
                 sofar
                 StM.Just
@@ -288,7 +285,7 @@ instance Hittable Plane where
     let !denom = unDir planeNormal `dot` rayDirection
     guard $ denom /= 0
     let !hitTime = (planeSection - dot (unDir planeNormal) (unP rayOrigin)) / denom
-    guard $ maybe True (< hitTime) mtmin && maybe True (hitTime <) mtmax
+    guard $ mtmin < hitTime && hitTime < mtmax
     let !p = rayAt hitTime ray
         !uv0 = planeCoordDir !* unP p
     !uv <-

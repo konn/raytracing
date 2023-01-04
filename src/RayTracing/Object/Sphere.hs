@@ -21,7 +21,7 @@ data Sphere = Sphere
   deriving (Show, Eq, Ord, Generic)
 
 instance Hittable Sphere where
-  hitWithin Sphere {..} mtmin mtmax r@Ray {..} = do
+  hitWithin Sphere {..} tmin tmax r@Ray {..} = do
     let !oc = rayOrigin .-. center
         !a = quadrance rayDirection
         !b = oc `dot` rayDirection
@@ -30,7 +30,7 @@ instance Hittable Sphere where
     guard $ delta >= 0
     hitTime <-
       find
-        (inRange mtmin mtmax)
+        (\t -> tmin < t && t < tmax)
         [(-b - sqrt delta) / a, (-b + sqrt delta) / a]
     let p = rayAt hitTime r
         n = unsafeDir $ (p .-. center) ^/ radius

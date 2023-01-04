@@ -24,6 +24,7 @@ import Data.Bitraversable (Bitraversable (..), bifoldMapDefault, bimapDefault)
 import Data.Generics.Labels ()
 import Data.Image.Types
 import GHC.Generics (Generic, Generic1)
+import Numeric.Utils
 import RayTracing.Object.Material
 import RayTracing.Object.Shape
 import RayTracing.Object.StdShape
@@ -79,7 +80,7 @@ rayColour eps Scene {..} = go
     go !depth r
       | depth <= 0 = pure 0.0
       | Just (hit, obj) <-
-          withNearestHitWithin (Just eps) Nothing r objects = do
+          withNearestHitWithin eps Infinity r objects = do
           let emission =
                 Pixel $
                   emitted obj (textureCoordinate hit) (coord hit)

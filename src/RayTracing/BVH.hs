@@ -49,6 +49,7 @@ import GHC.Exts (UnliftedType)
 import GHC.Generics
 import Graphics.ColorModel qualified as C
 import Linear (_x, _y, _z)
+import Numeric.Utils
 import RayTracing.BoundingBox
 import RayTracing.Object (Object (..), SomeObject)
 import RayTracing.Object.Material
@@ -209,8 +210,8 @@ boundingBox' = fromMaybe (error "BoundingBox not found!") . boundingBox
 
 nearestHit ::
   Hittable a =>
-  Maybe Double ->
-  Maybe Double ->
+  Double ->
+  Double ->
   Ray ->
   BVH a ->
   Maybe (HitRecord, a)
@@ -227,7 +228,7 @@ nearestHit mtmin mtmax0 ray bvh = go mtmax0 (unBVH bvh)
         Branch# _ _ l r ->
           case go mtmax l of
             Just hit@(Hit {hitTime}, _) ->
-              Just $! fromMaybe hit (go (Just hitTime) r)
+              Just $! fromMaybe hit (go hitTime r)
             Nothing -> go mtmax r
 
 bvhBBox :: BVH# a -> Maybe BoundingBox
@@ -270,7 +271,7 @@ rayColour eps Scene {..} = go
     {-# INLINE go #-}
     go !lvl r
       | lvl <= 0 = pure 0.0
-      | Just (hit, obj) <- nearestHit (Just eps) Nothing r objects = do
+      | Just (hit, obj) <- nearestHit eps Infinity r objects = do
           let emission =
                 C.Pixel $
                   emitted obj (textureCoordinate hit) (coord hit)
