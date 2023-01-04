@@ -14,6 +14,7 @@ import Data.Massiv.Array.IO (writeImage)
 import Linear
 import Linear.Affine (Point (..))
 import Linear.Direction
+import Numeric.Utils
 import RIO.FilePath ((</>))
 import RayTracing.Camera
 import RayTracing.Object.Shape
@@ -53,7 +54,7 @@ mkImage g =
 
 colorRay :: Hittable obj => obj -> RayColor
 colorRay obj r@Ray {..}
-  | Just Hit {..} <- hitWithin obj (Just 0) Nothing r =
+  | Just Hit {..} <- hitWithin obj 1e-3 Infinity r =
       let n = unDir normal
        in 0.5 *^ PixelRGB (n ^. _x + 1) (n ^. _y + 1) (n ^. _z + 1)
   | otherwise =

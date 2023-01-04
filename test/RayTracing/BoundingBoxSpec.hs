@@ -9,7 +9,7 @@ import RayTracing.Ray (Ray (..))
 import Test.Tasty
 import Test.Tasty.Inspection
 
-hits :: Ray -> BoundingBox -> Maybe Double -> Maybe Double -> Bool
+hits :: Ray -> BoundingBox -> Double -> Double -> Bool
 {-# INLINE hits #-}
 hits = hitsBox
 
