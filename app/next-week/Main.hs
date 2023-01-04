@@ -49,10 +49,8 @@ import RIO.FilePath qualified as FP
 import RIO.State (MonadState)
 import RayTracing.BVH
 import RayTracing.Camera
-import RayTracing.Object hiding (Scene, SceneOf (..), rayColour)
-import RayTracing.Object.Sphere
-import RayTracing.Object.StdShape
 import RayTracing.Ray
+import RayTracing.Scene
 import RayTracing.Texture
 import RayTracing.Texture.Image (ImageTexture' (..), loadImageTexture)
 import RayTracing.Texture.Noise.Perlin

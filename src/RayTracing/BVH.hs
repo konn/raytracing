@@ -1,37 +1,30 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
-{-# HLINT ignore "Avoid lambda" #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedDatatypes #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas -fsimpl-tick-factor=1000 #-}
+
+{-# HLINT ignore "Avoid lambda" #-}
 
 module RayTracing.BVH (
   BVH (),
   depth,
   size,
   nearestHit,
+  toFlatBVH,
   fromObjects,
   fromObjectsWithBinBucket,
-  BVHScene' (..),
-  Scene,
-  Object (..),
-  SomeObject,
-  rayColour,
 ) where
 
 import Control.Foldl qualified as L
 import Control.Lens (Identity (..), both, sumOf, view, (%~))
 import Control.Monad (forM_, guard)
-import Control.Monad.ST.Strict
-import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.ST.Strict (ST, runST)
 import Control.Monad.Trans.State.Strict (State, StateT (..))
 import Data.Function ((&))
-import Data.Image.Types (Pixel, RGB)
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
@@ -46,15 +39,9 @@ import Data.Vector.Hybrid.Mutable qualified as HMV
 import Data.Vector.Unboxed qualified as U
 import Data.Word (Word8)
 import GHC.Exts (UnliftedType)
-import GHC.Generics
-import Graphics.ColorModel qualified as C
 import Linear (_x, _y, _z)
-import Numeric.Utils
 import RayTracing.BoundingBox
-import RayTracing.Object (Object (..), SomeObject)
-import RayTracing.Object.Material
 import RayTracing.Object.Shape
-import RayTracing.Object.StdShape (StdShape)
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
 import System.Random.Stateful (StateGenM (..), randomRM)
@@ -246,37 +233,11 @@ size# (Leaf# _ v) = V.length v
 size# (Branch# n _ _ _) = n
 size# Empty# = 0
 
-type Scene = BVHScene' StdShape SomeMaterial
-
-data BVHScene' sh mat = Scene
-  { objects :: !(BVH (Object sh mat))
-  , background :: !(Ray -> Pixel RGB Double)
-  }
-  deriving (Generic)
-
-rayColour ::
-  ( Hittable sh
-  , Material mat
-  , RandomGen g
-  ) =>
-  -- | Threshould to reagard as zero
-  Double ->
-  BVHScene' sh mat ->
-  Int ->
-  Ray ->
-  State g (Pixel RGB Double)
-{-# INLINE rayColour #-}
-rayColour eps Scene {..} = go
-  where
-    {-# INLINE go #-}
-    go !lvl r
-      | lvl <= 0 = pure 0.0
-      | Just (hit, obj) <- nearestHit eps Infinity r objects = do
-          let emission =
-                C.Pixel $
-                  emitted obj (textureCoordinate hit) (coord hit)
-          runMaybeT (scatter obj hit r) >>= \case
-            Nothing -> pure emission
-            Just (attenuation, scattered) ->
-              (emission +) . (attenuation .*) <$> go (lvl - 1) scattered
-      | otherwise = pure $ background r
+-- | Converts a list of objects into trivial flat (brute-force) BVH.
+toFlatBVH :: (Foldable t, Hittable a) => t a -> BVH a
+{-# INLINE toFlatBVH #-}
+toFlatBVH objs
+  | null objs = BVH Empty#
+  | otherwise = fromMaybe (BVH Empty#) $ do
+      bbox <- foldMap boundingBox objs
+      pure $ BVH $ Leaf# bbox $ L.fold L.vector objs

@@ -40,9 +40,8 @@ import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
 import RayTracing.BVH
 import RayTracing.Camera
-import RayTracing.Object hiding (Scene, rayColour)
-import RayTracing.Object.Sphere
 import RayTracing.Ray
+import RayTracing.Scene
 import System.Random
 import System.Random.Stateful (runStateGen_)
 import Text.Read (readMaybe)

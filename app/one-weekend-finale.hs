@@ -53,9 +53,9 @@ import RIO.Text qualified as T
 import RIO.Text.Partial qualified as T
 import RayTracing.BVH
 import RayTracing.Camera
-import RayTracing.Object hiding (Scene, SceneOf (..), rayColour)
-import RayTracing.Object.Sphere
+import RayTracing.Object.Material
 import RayTracing.Ray
+import RayTracing.Scene
 import RayTracing.Texture
 import System.Random
 import System.Random.Stateful (StateGenM (..), randomRM, runStateGen_)

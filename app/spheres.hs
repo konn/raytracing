@@ -13,7 +13,6 @@ import Linear.Direction
 import Numeric.Utils
 import RIO.FilePath ((</>))
 import RayTracing.Object.Shape
-import RayTracing.Object.Sphere
 import RayTracing.Ray
 
 main :: IO ()

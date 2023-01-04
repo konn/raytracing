@@ -38,9 +38,15 @@ library
       RayTracing.Object
       RayTracing.Object.Material
       RayTracing.Object.Shape
-      RayTracing.Object.Sphere
-      RayTracing.Object.StdShape
+      RayTracing.Object.Shape.Box
+      RayTracing.Object.Shape.Class
+      RayTracing.Object.Shape.Plane
+      RayTracing.Object.Shape.Rotate
+      RayTracing.Object.Shape.Sphere
+      RayTracing.Object.Shape.StdShape
+      RayTracing.Object.Shape.Translate
       RayTracing.Ray
+      RayTracing.Scene
       RayTracing.Texture
       RayTracing.Texture.Image
       RayTracing.Texture.Noise.Perlin

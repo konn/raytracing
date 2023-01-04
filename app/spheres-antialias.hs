@@ -18,7 +18,6 @@ import Numeric.Utils
 import RIO.FilePath ((</>))
 import RayTracing.Camera
 import RayTracing.Object.Shape
-import RayTracing.Object.Sphere
 import RayTracing.Ray
 import System.Random
 import System.Random.Stateful (runStateGen_)

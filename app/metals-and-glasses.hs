@@ -29,8 +29,8 @@ import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RayTracing.Camera
 import RayTracing.Object
-import RayTracing.Object.Sphere
 import RayTracing.Ray
+import RayTracing.Scene
 import System.Random
 
 main :: IO ()
@@ -177,12 +177,13 @@ mkScene Options {..} =
       rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
    in Scene
         { objects =
-            [ mkSomeObject ground groundMaterial
-            , mkSomeObject center centerMaterial
-            , mkSomeObject leftS leftMaterial
-            , mkSomeObject hollowLeftSphere leftMaterial
-            , mkSomeObject rightS rightMaterial
-            ]
+            toFlatBVH
+              [ mkSomeObject ground groundMaterial
+              , mkSomeObject center centerMaterial
+              , mkSomeObject leftS leftMaterial
+              , mkSomeObject hollowLeftSphere leftMaterial
+              , mkSomeObject rightS rightMaterial
+              ]
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)

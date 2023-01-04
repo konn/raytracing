@@ -1,7 +1,7 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module RayTracing.Object.Sphere (Sphere (..), Hittable (..)) where
+module RayTracing.Object.Shape.Sphere (Sphere (..)) where
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
@@ -11,7 +11,7 @@ import Linear
 import Linear.Affine
 import Linear.Direction
 import RayTracing.BoundingBox
-import RayTracing.Object.Shape
+import RayTracing.Object.Shape.Class
 import RayTracing.Ray
 
 data Sphere = Sphere

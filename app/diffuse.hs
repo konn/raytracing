@@ -29,8 +29,8 @@ import Options.Applicative qualified as Opt
 import RIO.FilePath ((</>))
 import RayTracing.Camera
 import RayTracing.Object
-import RayTracing.Object.Sphere
 import RayTracing.Ray
+import RayTracing.Scene
 import System.Random
 import System.Random.Stateful (StateGenM (..), randomRM, runStateGen)
 
@@ -168,7 +168,7 @@ mkScene Options {..} =
           Lambert -> MkSomeMaterial $ Lambertian $ MkAttn 0.5 0.5 0.5
           Hemisphere -> MkSomeMaterial $ Hemispheric $ MkAttn 0.5 0.5 0.5
    in Scene
-        { objects = map (`Object` diff) world
+        { objects = toFlatBVH $ map (`Object` diff) world
         , background = \Ray {..} ->
             let !unitDirection = normalize rayDirection
                 !t = 0.5 * (unitDirection ^. _y + 1.0)

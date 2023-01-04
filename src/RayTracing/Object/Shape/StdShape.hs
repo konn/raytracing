@@ -1,13 +1,24 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 
-module RayTracing.Object.StdShape (ToStdShape (..), StdShape (..)) where
+module RayTracing.Object.Shape.StdShape (
+  ToStdShape (..),
+  StdShape (..),
+  module RayTracing.Object.Shape.Plane,
+  module RayTracing.Object.Shape.Rotate,
+  module RayTracing.Object.Shape.Sphere,
+  module RayTracing.Object.Shape.Translate,
+) where
 
 import Data.Kind (Constraint)
 import GHC.Exts (TYPE)
 import GHC.Generics (Generic)
-import RayTracing.Object.Shape
-import RayTracing.Object.Sphere (Sphere)
+import RayTracing.Object.Shape.Box (Box)
+import RayTracing.Object.Shape.Class
+import RayTracing.Object.Shape.Plane
+import RayTracing.Object.Shape.Rotate
+import RayTracing.Object.Shape.Sphere
+import RayTracing.Object.Shape.Translate
 
 data StdShape
   = ASphere {-# UNPACK #-} !Sphere
