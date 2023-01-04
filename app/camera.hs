@@ -278,12 +278,12 @@ mkScene Options {..} = do
       rightMaterial = Metal rightRatio
       rightS = Sphere {center = p3 (1, 0, -1), radius = 0.5}
       objs =
-        [ MkSomeObject ground groundMaterial
-        , MkSomeObject center centerMaterial
-        , MkSomeObject leftS leftMaterial
-        , MkSomeObject rightS rightMaterial
+        [ mkSomeObject ground groundMaterial
+        , mkSomeObject center centerMaterial
+        , mkSomeObject leftS leftMaterial
+        , mkSomeObject rightS rightMaterial
         ]
-          ++ [ MkSomeObject hollowLeftSphere leftMaterial
+          ++ [ mkSomeObject hollowLeftSphere leftMaterial
              | hollow
              ]
   objects <- fromObjectsWithBinBucket 16 4 objs

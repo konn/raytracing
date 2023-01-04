@@ -24,7 +24,7 @@ module RayTracing.Object.Shape (
   zxPlane,
   Box (..),
   Rotate (Rotate, rotation, original),
-  Translate (Translate, displacement, orig),
+  Translate (Translate, displacement, translated),
 ) where
 
 import Control.Applicative (liftA2)
@@ -311,13 +311,13 @@ data Translate a = Translate'
 {-# COMPLETE Translate #-}
 
 pattern Translate :: Hittable a => () => V3 Double -> a -> Translate a
-pattern Translate {displacement, orig} <- Translate' displacement orig _
+pattern Translate {displacement, translated} <- Translate' displacement translated _
   where
-    Translate displacement original =
+    Translate d t =
       Translate'
-        { displacement_ = displacement
-        , original_ = original
-        , tBBox = translatedBBox displacement original
+        { displacement_ = d
+        , original_ = t
+        , tBBox = translatedBBox d t
         }
 
 translatedBBox :: Hittable a => V3 Double -> a -> Maybe BoundingBox
