@@ -146,7 +146,7 @@ presets scn =
             & HKD.field @"verticalFieldOfView" .~ pure (40.0 @@ deg)
             & HKD.field @"thinLens" .~ pure Nothing
 
-mkImage :: RandomGen g => g -> Options -> Scene -> WordImage
+mkImage :: StdGen -> Options -> Scene -> WordImage
 mkImage g0 Options {..} theScene =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
@@ -174,7 +174,7 @@ mkImage g0 Options {..} theScene =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => SceneName -> Options -> StateT g IO Scene
+mkScene :: SceneName -> Options -> StateT StdGen IO Scene
 mkScene CornellBoxSmoke Options {..} = do
   let red = Lambertian $ ColorRGB 0.65 0.05 0.05
       white = Lambertian $ ColorRGB 0.73 0.73 0.73

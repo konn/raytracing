@@ -21,6 +21,7 @@ import System.Random.Internal
 import System.Random.SplitMix
 import System.Random.Stateful
 
+{-
 instance {-# INCOHERENT #-} StatefulGen g m => StatefulGen g (MaybeT m) where
   uniformWord64 = lift . uniformWord64
   {-# INLINE uniformWord64 #-}
@@ -60,7 +61,7 @@ instance {-# INCOHERENT #-} (StatefulGen g m) => StatefulGen g (WriterT w m) whe
 instance {-# OVERLAPPING #-} (RandomGenM g r m) => RandomGenM g r (WriterT w m) where
   applyRandomGenM = fmap lift . applyRandomGenM
   {-# INLINE applyRandomGenM #-}
-
+ -}
 data instance U.Vector SMGen = V_SMGen !Int (U.Vector Word64)
 
 data instance U.MVector s SMGen = MV_SMGen !Int (U.MVector s Word64)
