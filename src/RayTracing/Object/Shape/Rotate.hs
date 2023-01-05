@@ -60,12 +60,12 @@ rotatedBBox rot =
 
 instance Hittable a => Hittable (Rotate a) where
   {-# INLINE hitWithin #-}
-  hitWithin Rotate' {..} tmin tmax ray g = do
+  hitWithin Rotate' {..} tmin tmax ray = do
     let !relativeRay =
           ray
             & #rayOrigin . _Point %~ rotate invRot_
             & #rayDirection %~ rotate invRot_
-    hitWithin original_ tmin tmax relativeRay g
+    hitWithin original_ tmin tmax relativeRay
       <&> #normal %~ rotateD rotation_
       <&> #coord . _Point %~ rotate rotation_
       <&> makeNormalOppositeTo (ray ^. #rayDirection)

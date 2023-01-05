@@ -1,13 +1,11 @@
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedDatatypes #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas -fsimpl-tick-factor=1000 #-}
-{-# OPTIONS_GHC -fprint-potential-instances #-}
 
 {-# HLINT ignore "Avoid lambda" #-}
 
@@ -48,8 +46,7 @@ import RayTracing.BoundingBox
 import RayTracing.Object.Shape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
-import System.Random.Stateful (freezeGen, randomRM, thawGen)
-import System.Random.Stateful.STUnbox
+import System.Random.Stateful (StateGenM (..), randomRM)
 
 type BVH :: Type -> Type
 newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
@@ -75,7 +72,7 @@ depth bvh = go (unBVH bvh)
     go (Branch# _ _ l r) =
       max (go l) (go r) + 1
 
-fromObjects :: (Foldable t, RandomGen g, U.Unbox g, Hittable a) => t a -> State g (BVH a)
+fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> State g (BVH a)
 {-# INLINE fromObjects #-}
 fromObjects = fromObjectsWithBinBucket 2 4
 
@@ -83,22 +80,19 @@ runStateST :: (forall s. StateT r (ST s) a) -> State r a
 {-# INLINE runStateST #-}
 runStateST f = StateT $ \r -> Identity $ runST (runStateT f r)
 
-fromObjectsWithBinBucket :: (Foldable t, RandomGen g, U.Unbox g, Hittable a) => Int -> Int -> t a -> State g (BVH a)
+fromObjectsWithBinBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> Int -> t a -> State g (BVH a)
 {-# INLINE fromObjectsWithBinBucket #-}
 fromObjectsWithBinBucket bins siz hits
   | null hits = pure (BVH Empty#)
-  | otherwise = runStateST $ StateT $ \g0 -> do
-      g <- thawGen $ STUGen g0
-      bvh <-
-        buildBVH' (max 2 bins) (max 1 siz) g
-          =<< HV.unsafeThaw
-          =<< L.foldM
-            ( L.premapM
-                (pure . ((,) <$> boundingBox' <*> id))
-                L.vectorM
-            )
-            hits
-      (bvh,) . unSTUGen <$> freezeGen g
+  | otherwise = runStateST $ do
+      buildBVH' (max 2 bins) (max 1 siz)
+        =<< HV.unsafeThaw
+        =<< L.foldM
+          ( L.premapM
+              (pure . ((,) <$> boundingBox' <*> id))
+              L.vectorM
+          )
+          hits
 
 data P a = P
   { _bbox :: {-# UNPACK #-} !BoundingBox
@@ -106,18 +100,17 @@ data P a = P
   }
 
 buildBVH' ::
-  (RandomGen g, U.Unbox g) =>
+  (RandomGen g) =>
   Int ->
   Int ->
-  STUGenM g s ->
   HV.MVector U.MVector V.MVector s (BoundingBox, a) ->
-  ST s (BVH a)
+  StateT g (ST s) (BVH a)
 {-# INLINE buildBVH' #-}
-buildBVH' bins0 bucketSize g = fmap (\p -> BVH (bvh# p)) . go
+buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
-      i <- randomRM (0 :: Word8, 2) g
+      i <- randomRM (0 :: Word8, 2) StateGenM
       let cmp = case i of
             0 -> comparing $ view _x . lowerBound . fst
             1 -> comparing $ view _y . lowerBound . fst
@@ -205,15 +198,14 @@ boundingBox' :: Hittable obj => obj -> BoundingBox
 boundingBox' = fromMaybe (error "BoundingBox not found!") . boundingBox
 
 nearestHit ::
-  (Hittable a, RandomGen g, U.Unbox g) =>
+  (Hittable a, RandomGen g) =>
   Double ->
   Double ->
   Ray ->
   BVH a ->
-  STUGenM g s ->
-  ST s (Maybe (HitRecord, a))
+  State g (Maybe (HitRecord, a))
 {-# INLINE nearestHit #-}
-nearestHit mtmin mtmax0 ray bvh g = runMaybeT $ go mtmax0 (unBVH bvh)
+nearestHit mtmin mtmax0 ray bvh = runMaybeT $ go mtmax0 (unBVH bvh)
   where
     {-# INLINE go #-}
     go _ Empty# = empty
@@ -221,7 +213,7 @@ nearestHit mtmin mtmax0 ray bvh g = runMaybeT $ go mtmax0 (unBVH bvh)
       forM_ (bvhBBox tree) $ \bbox ->
         guard $ hitsBox ray bbox mtmin mtmax
       case tree of
-        Leaf# _ as -> MaybeT $ withNearestHitWithin mtmin mtmax ray g as
+        Leaf# _ as -> MaybeT $ withNearestHitWithin mtmin mtmax ray as
         Branch# _ _ l r ->
           ( do
               hit@(Hit {hitTime}, _) <- go mtmax l

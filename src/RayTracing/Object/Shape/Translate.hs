@@ -51,13 +51,12 @@ instance Hittable a => Hittable (Translate a) where
   {-# INLINE hitWithin #-}
   hitWithin = \case
     Translate' {..} ->
-      \mtmin mtmax ray g ->
+      \mtmin mtmax ray ->
         hitWithin
           original_
           mtmin
           mtmax
           (ray & #rayOrigin %~ (.-^ displacement_))
-          g
           <&> #coord . _Point +~ displacement_
           <&> makeNormalOppositeTo (ray ^. #rayDirection)
   {-# INLINE boundingBox #-}

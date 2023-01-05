@@ -17,11 +17,9 @@ module RayTracing.Scene (
   module RayTracing.BVH,
 ) where
 
-import Control.Monad.ST.Strict (ST)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Control.Monad.Trans.State.Strict (State)
 import Data.Image.Types (Pixel, RGB)
-import Data.Vector.Unboxed qualified as U
 import GHC.Generics
 import Graphics.ColorModel qualified as C
 import Numeric.Utils
@@ -31,8 +29,6 @@ import RayTracing.Object.Material
 import RayTracing.Object.Shape.StdShape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
-import System.Random.Stateful (StateGenM (..), applyRandomGenM)
-import System.Random.Stateful.STUnbox
 
 type Scene = SceneOf StdShape SomeMaterial
 
@@ -42,19 +38,10 @@ data SceneOf sh mat = Scene
   }
   deriving (Generic)
 
-stuGenToStateGen ::
-  (RandomGen g, U.Unbox g) =>
-  (forall s. STUGenM g s -> ST s a) ->
-  State g a
-{-# INLINE stuGenToStateGen #-}
-stuGenToStateGen =
-  ($ StateGenM) . applyRandomGenM . flip runSTUGen
-
 rayColour ::
   ( Hittable sh
   , Material mat
   , RandomGen g
-  , U.Unbox g
   ) =>
   -- | Threshould to reagard as zero
   Double ->
@@ -69,7 +56,7 @@ rayColour eps Scene {..} = go
     go !lvl r
       | lvl <= 0 = pure 0.0
       | otherwise =
-          stuGenToStateGen (nearestHit eps Infinity r objects) >>= \case
+          nearestHit eps Infinity r objects >>= \case
             Just (hit, obj) -> do
               let emission =
                     C.Pixel $
