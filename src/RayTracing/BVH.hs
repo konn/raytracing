@@ -111,8 +111,8 @@ buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
               fmap Max . Arg
                 <$> (upperBound bbs .-. lowerBound bbs)
                 <*> V3 _x _y _z
-          cmp = comparing $ view ax . lowerBound . fst
-          len = HMV.length objs
+          !cmp = comparing $ view ax . lowerBound . fst
+          !len = HMV.length objs
       if
           | len <= 1 -> pure ()
           | len == 2 -> OptSort.sort2ByOffset cmp objs 0
