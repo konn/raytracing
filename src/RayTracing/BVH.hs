@@ -32,7 +32,6 @@ import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
 import Data.Semigroup (Arg (..), Max (..), Min (..))
 import Data.Semigroup.Foldable (fold1)
-import Data.Strict.Maybe qualified as StM
 import Data.Strict.Tuple (Pair (..))
 import Data.Vector qualified as V
 import Data.Vector.Algorithms.Intro qualified as Intro
@@ -106,19 +105,13 @@ buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
-      !wholeMBB <-
-        U.foldl' (\l r -> l <> StM.Just r) StM.Nothing
-          <$> U.unsafeFreeze (HMV.projectFst objs)
-      let cmp = case wholeMBB of
-            StM.Nothing -> comparing $ view _x . lowerBound . fst
-            StM.Just bb ->
-              let Max (Arg _ ax) =
-                    fold1 $
-                      fmap Max
-                        . Arg
-                        <$> (upperBound bb .-. lowerBound bb)
-                        <*> V3 _x _y _z
-               in comparing $ view ax . lowerBound . fst
+      !bbs <- U.foldl1' (<>) <$> U.unsafeFreeze (HMV.projectFst objs)
+      let Max (Arg _ !ax) =
+            fold1 $
+              fmap Max . Arg
+                <$> (upperBound bbs .-. lowerBound bbs)
+                <*> V3 _x _y _z
+          cmp = comparing $ view ax . lowerBound . fst
           len = HMV.length objs
       if
           | len <= 1 -> pure ()
@@ -129,8 +122,7 @@ buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
       case len of
         _ | len <= bucketSize -> do
           bbObjs <- HV.unsafeFreeze objs
-          let !bbs = U.foldl1' (<>) (HV.projectFst bbObjs)
-              !objs' = HV.projectSnd bbObjs
+          let !objs' = HV.projectSnd bbObjs
           pure $ P bbs (Leaf# bbs objs')
         2 -> do
           (lb, l) <- HMV.unsafeRead objs 0
