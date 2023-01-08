@@ -408,7 +408,7 @@ p3 (x, y, z) = P $ V3 x y z
 generateBalls ::
   RandomGen g =>
   WriterT
-    (FML.FMList (Object StdShape SomeMaterial))
+    (FML.FMList SomeObject)
     (State g)
     ()
 generateBalls = forM_ @[] [-11 .. 10] $ \a -> forM_ @[] [-11 .. 10] $ \b -> do

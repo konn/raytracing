@@ -37,14 +37,14 @@ instance Material mat => Material (Object shape mat) where
   emitted = emitted . material
   {-# INLINE emitted #-}
 
-type SomeObject = Object StdShape SomeMaterial
+type SomeObject = Object SomeHittable SomeMaterial
 
 mkSomeObject ::
-  (ToStdShape obj, Material a) =>
+  (Hittable obj, Material a) =>
   obj ->
   a ->
-  Object StdShape SomeMaterial
-mkSomeObject shape mat = Object (toStdShape shape) (MkSomeMaterial mat)
+  Object SomeHittable SomeMaterial
+mkSomeObject shape mat = Object (MkSomeHittable shape) (MkSomeMaterial mat)
 
 instance Bifunctor Object where
   bimap = bimapDefault

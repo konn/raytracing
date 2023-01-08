@@ -30,7 +30,7 @@ import RayTracing.Object.Shape.StdShape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
 
-type Scene = SceneOf StdShape SomeMaterial
+type Scene = SceneOf SomeHittable SomeMaterial
 
 data SceneOf sh mat = Scene
   { objects :: !(BVH (Object sh mat))
