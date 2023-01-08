@@ -196,17 +196,19 @@ mkScene CornellBoxSmoke Options {..} = do
           & Rotate (axisAngleA yDir (-18 @@ deg))
           & Translate (V3 130 0 65)
           & ConstantMedium 0.005
-      objs =
-        [ mkSomeObject leftWall green
-        , mkSomeObject rightWall red
-        , mkSomeObject ceilLight light
-        , mkSomeObject bottomWall white
-        , mkSomeObject topWall white
-        , mkSomeObject rearWall white
-        , mkSomeObject box1 $ Isotropic $ ColorRGB 0 0 0
-        , mkSomeObject box2 $ Isotropic $ ColorRGB 1 1 1
-        ]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects =
+        fromObjectsWithBinBucket
+          binSize
+          bucketSize
+          [ mkSomeObject leftWall green
+          , mkSomeObject rightWall red
+          , mkSomeObject ceilLight light
+          , mkSomeObject bottomWall white
+          , mkSomeObject topWall white
+          , mkSomeObject rearWall white
+          , mkSomeObject box1 $ Isotropic $ ColorRGB 0 0 0
+          , mkSomeObject box2 $ Isotropic $ ColorRGB 1 1 1
+          ]
   pure Scene {objects, background = const 0}
 mkScene CornellBox Options {..} = do
   let red = Lambertian $ ColorRGB 0.65 0.05 0.05
@@ -227,17 +229,19 @@ mkScene CornellBox Options {..} = do
         Box (p3 (0, 0, 0)) (p3 (165, 165, 165))
           & Rotate (axisAngleA yDir (-18 @@ deg))
           & Translate (V3 130 0 65)
-      objs =
-        [ mkSomeObject leftWall green
-        , mkSomeObject rightWall red
-        , mkSomeObject ceilLight light
-        , mkSomeObject bottomWall white
-        , mkSomeObject topWall white
-        , mkSomeObject rearWall white
-        , mkSomeObject box1 white
-        , mkSomeObject box2 white
-        ]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects =
+        fromObjectsWithBinBucket
+          binSize
+          bucketSize
+          [ mkSomeObject leftWall green
+          , mkSomeObject rightWall red
+          , mkSomeObject ceilLight light
+          , mkSomeObject bottomWall white
+          , mkSomeObject topWall white
+          , mkSomeObject rearWall white
+          , mkSomeObject box1 white
+          , mkSomeObject box2 white
+          ]
   pure Scene {objects, background = const 0}
 mkScene SimpleLight Options {..} = do
   perlinSeed <- hoist generalize randomPerlinSeed
@@ -255,13 +259,15 @@ mkScene SimpleLight Options {..} = do
       rect = xyPlane (-2) (V2 (3, 5) (1, 3))
       lamp = Sphere {radius = 1.5, center = p3 (0, 6.5, 0)}
       blueLight = DiffuseLight $ 4 *^ ColorRGB 0.0 0.125 0.5
-      objs =
-        [ mkSomeObject ground pertext
-        , mkSomeObject ball pertext
-        , mkSomeObject rect light
-        , mkSomeObject lamp blueLight
-        ]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects =
+        fromObjectsWithBinBucket
+          binSize
+          bucketSize
+          [ mkSomeObject ground pertext
+          , mkSomeObject ball pertext
+          , mkSomeObject rect light
+          , mkSomeObject lamp blueLight
+          ]
   pure Scene {objects, background = const 0}
 mkScene Perlin Options {..} = do
   perlinSeed <- hoist generalize randomPerlinSeed
@@ -275,8 +281,11 @@ mkScene Perlin Options {..} = do
             }
       sph = Sphere {center = p3 (0, 2, 0), radius = 2}
       ground = Sphere {radius = 1000, center = p3 (0, -1000, 0)}
-      objs = [mkSomeObject ground pertext, mkSomeObject sph pertext]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects =
+        fromObjectsWithBinBucket
+          binSize
+          bucketSize
+          [mkSomeObject ground pertext, mkSomeObject sph pertext]
   pure
     Scene
       { objects
@@ -286,8 +295,7 @@ mkScene Earth Options {..} = do
   earthmap <- loadImageTexture $ "data" </> "earthmap.jpg"
   let earth = Lambertian earthmap
       sph1 = Sphere {center = p3 (0, 0, 0), radius = 2}
-      objs = [mkSomeObject sph1 earth]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects = fromObjectsWithBinBucket binSize bucketSize [mkSomeObject sph1 earth]
   pure
     Scene
       { objects
@@ -304,8 +312,7 @@ mkScene TwoSpheres Options {..} = do
             10
       sph1 = Sphere {center = p3 (0, -10, 0), radius = 10}
       sph2 = Sphere {center = p3 (0, 10, 0), radius = 10}
-      objs = [mkSomeObject sph1 checker, mkSomeObject sph2 checker]
-  objects <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+      objects = fromObjectsWithBinBucket binSize bucketSize [mkSomeObject sph1 checker, mkSomeObject sph2 checker]
   pure
     Scene
       { objects
@@ -323,19 +330,19 @@ mkScene RandomScene Options {..} = do
       material3 = Metal $ MkAttn 0.7 0.6 0.5
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
   balls <- hoist generalize $ execWriterT generateBalls
-  let objs =
-        FML.cons
-          (mkSomeObject ground groundMaterial)
-          balls
-          <> FML.fromList
-            [ mkSomeObject sphere1 material1
-            , mkSomeObject sphere2 material2
-            , mkSomeObject sphere3 material3
-            ]
-  !bvh <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+  let objects =
+        fromObjectsWithBinBucket binSize bucketSize $
+          FML.cons
+            (mkSomeObject ground groundMaterial)
+            balls
+            <> FML.fromList
+              [ mkSomeObject sphere1 material1
+              , mkSomeObject sphere2 material2
+              , mkSomeObject sphere3 material3
+              ]
   pure
     Scene
-      { objects = bvh
+      { objects
       , background = blueGradientBackground
       }
 mkScene RayCharles Options {..} = do
@@ -359,16 +366,16 @@ mkScene RayCharles Options {..} = do
           TextureOffset {offset = V2 0.025 0.1, texture = imgTxt}
       sphere3 = Sphere (p3 (4, 1, 0)) 1.0
   balls <- hoist generalize $ execWriterT generateBalls
-  let objs =
-        FML.cons
-          (mkSomeObject ground groundMaterial)
-          balls
-          <> FML.fromList
-            [ mkSomeObject sphere1 material1
-            , mkSomeObject sphere2 material2
-            , mkSomeObject sphere3 material3
-            ]
-  !bvh <- hoist generalize $ fromObjectsWithBinBucket binSize bucketSize objs
+  let bvh =
+        fromObjectsWithBinBucket binSize bucketSize $
+          FML.cons
+            (mkSomeObject ground groundMaterial)
+            balls
+            <> FML.fromList
+              [ mkSomeObject sphere1 material1
+              , mkSomeObject sphere2 material2
+              , mkSomeObject sphere3 material3
+              ]
   pure
     Scene
       { objects = bvh

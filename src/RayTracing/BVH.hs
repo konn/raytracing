@@ -21,16 +21,18 @@ module RayTracing.BVH (
 
 import Control.Applicative (Alternative (..), (<|>))
 import Control.Foldl qualified as L
-import Control.Lens (Identity (..), both, sumOf, view, (%~))
+import Control.Lens (both, sumOf, view, (%~))
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict (ST, runST)
 import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.State.Strict (State, StateT (..))
+import Control.Monad.Trans.State.Strict (State)
 import Data.Function ((&))
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
-import Data.Semigroup (Arg (..), Min (..))
+import Data.Semigroup (Arg (..), Max (..), Min (..))
+import Data.Semigroup.Foldable (fold1)
+import Data.Strict.Maybe qualified as StM
 import Data.Strict.Tuple (Pair (..))
 import Data.Vector qualified as V
 import Data.Vector.Algorithms.Intro qualified as Intro
@@ -39,14 +41,13 @@ import Data.Vector.Generic.Mutable qualified as MG
 import Data.Vector.Hybrid qualified as HV
 import Data.Vector.Hybrid.Mutable qualified as HMV
 import Data.Vector.Unboxed qualified as U
-import Data.Word (Word8)
 import GHC.Exts (UnliftedType)
-import Linear (_x, _y, _z)
+import Linear (V3 (..), _x, _y, _z)
+import Linear.Affine ((.-.))
 import RayTracing.BoundingBox
 import RayTracing.Object.Shape
 import RayTracing.Ray (Ray)
 import System.Random (RandomGen)
-import System.Random.Stateful (StateGenM (..), randomRM)
 
 type BVH :: Type -> Type
 newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
@@ -72,19 +73,15 @@ depth bvh = go (unBVH bvh)
     go (Branch# _ _ l r) =
       max (go l) (go r) + 1
 
-fromObjects :: (Foldable t, RandomGen g, Hittable a) => t a -> State g (BVH a)
+fromObjects :: (Foldable t, Hittable a) => t a -> BVH a
 {-# INLINE fromObjects #-}
 fromObjects = fromObjectsWithBinBucket 2 4
 
-runStateST :: (forall s. StateT r (ST s) a) -> State r a
-{-# INLINE runStateST #-}
-runStateST f = StateT $ \r -> Identity $ runST (runStateT f r)
-
-fromObjectsWithBinBucket :: (Foldable t, RandomGen g, Hittable a) => Int -> Int -> t a -> State g (BVH a)
+fromObjectsWithBinBucket :: (Foldable t, Hittable a) => Int -> Int -> t a -> BVH a
 {-# INLINE fromObjectsWithBinBucket #-}
 fromObjectsWithBinBucket bins siz hits
-  | null hits = pure (BVH Empty#)
-  | otherwise = runStateST $ do
+  | null hits = BVH Empty#
+  | otherwise = runST $ do
       buildBVH' (max 2 bins) (max 1 siz)
         =<< HV.unsafeThaw
         =<< L.foldM
@@ -100,21 +97,28 @@ data P a = P
   }
 
 buildBVH' ::
-  (RandomGen g) =>
   Int ->
   Int ->
   HV.MVector U.MVector V.MVector s (BoundingBox, a) ->
-  StateT g (ST s) (BVH a)
+  ST s (BVH a)
 {-# INLINE buildBVH' #-}
 buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
   where
     {-# INLINE go #-}
     go objs = do
-      i <- randomRM (0 :: Word8, 2) StateGenM
-      let cmp = case i of
-            0 -> comparing $ view _x . lowerBound . fst
-            1 -> comparing $ view _y . lowerBound . fst
-            _ -> comparing $ view _z . lowerBound . fst
+      !wholeMBB <-
+        U.foldl' (\l r -> l <> StM.Just r) StM.Nothing
+          <$> U.unsafeFreeze (HMV.projectFst objs)
+      let cmp = case wholeMBB of
+            StM.Nothing -> comparing $ view _x . lowerBound . fst
+            StM.Just bb ->
+              let Max (Arg _ ax) =
+                    fold1 $
+                      fmap Max
+                        . Arg
+                        <$> (upperBound bb .-. lowerBound bb)
+                        <*> V3 _x _y _z
+               in comparing $ view ax . lowerBound . fst
           len = HMV.length objs
       if
           | len <= 1 -> pure ()

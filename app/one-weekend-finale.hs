@@ -15,7 +15,6 @@ module Main (main) where
 import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (forM_, guard, when, (<=<))
-import Control.Monad.Morph (generalize, hoist)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Control.Monad.Trans.State.Strict (State)
@@ -306,7 +305,7 @@ mkScene Options {} = do
             , mkSomeObject sphere2 material2
             , mkSomeObject sphere3 material3
             ]
-  !bvh <- hoist generalize $ fromObjectsWithBinBucket 16 4 objs
+      !bvh = fromObjectsWithBinBucket 16 4 objs
   pure
     Scene
       { objects = bvh

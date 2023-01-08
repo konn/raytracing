@@ -14,7 +14,6 @@ import Control.Applicative ((<**>), (<|>))
 import Control.Lens
 import Control.Monad (guard, (<=<))
 import Control.Monad.Trans.Reader (ReaderT (..))
-import Control.Monad.Trans.State.Strict (State)
 import Data.ByteString.Char8 qualified as BS
 import Data.Char qualified as C
 import Data.Generics.Labels ()
@@ -43,7 +42,6 @@ import RayTracing.Camera
 import RayTracing.Ray
 import RayTracing.Scene
 import System.Random
-import System.Random.Stateful (runStateGen_)
 import Text.Read (readMaybe)
 
 main :: IO ()
@@ -235,11 +233,10 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
         ]
 
 mkImage :: RandomGen g => g -> Options -> WordImage
-mkImage g0 opts@Options {..} =
+mkImage g' opts@Options {..} =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
-      (gScene, g') = split g0
-      scene = runStateGen_ gScene $ const $ mkScene opts
+      scene = mkScene opts
       sz = Sz2 imageHeight imageWidth
       aCamera =
         mkCamera $
@@ -264,8 +261,8 @@ mkImage g0 opts@Options {..} =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: RandomGen g => Options -> State g Scene
-mkScene Options {..} = do
+mkScene :: Options -> Scene
+mkScene Options {..} =
   let ground = Sphere {center = p3 (0, -100.5, -1), radius = 100}
       groundMaterial = Lambertian $ MkAttn 0.8 0.8 0.0
       centerMaterial = Lambertian $ MkAttn 0.1 0.2 0.5
@@ -285,15 +282,14 @@ mkScene Options {..} = do
           ++ [ mkSomeObject hollowLeftSphere leftMaterial
              | hollow
              ]
-  objects <- fromObjectsWithBinBucket 16 4 objs
-  pure
-    Scene
-      { objects = objects
-      , background = \Ray {..} ->
-          let !unitDirection = normalize rayDirection
-              !t = 0.5 * (unitDirection ^. _y + 1.0)
-           in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
-      }
+      objects = fromObjectsWithBinBucket 16 4 objs
+   in Scene
+        { objects = objects
+        , background = \Ray {..} ->
+            let !unitDirection = normalize rayDirection
+                !t = 0.5 * (unitDirection ^. _y + 1.0)
+             in lerp t (PixelRGB 0.5 0.7 1.0) (PixelRGB 1.0 1.0 1.0)
+        }
 
 p3 :: (a, a, a) -> Point V3 a
 p3 (x, y, z) = P $ V3 x y z
