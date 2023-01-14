@@ -576,3 +576,51 @@ test-suite raytracing-test
     , vector-algorithms
     , vector-th-unbox
   default-language: Haskell2010
+
+benchmark raytracing-bench
+  type: exitcode-stdio-1.0
+  main-is: bench.hs
+  other-modules:
+      Paths_raytracing
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N6 -A32m -T" -O2
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      adjunctions
+    , barbies
+    , base >=4.7 && <5
+    , bytestring
+    , bytestring-trie
+    , distributive
+    , dlist
+    , fmlist
+    , foldl
+    , generic-lens
+    , higgledy
+    , hybrid-vectors
+    , integer-roots
+    , lens
+    , linear
+    , massiv
+    , massiv-io
+    , mmorph
+    , named
+    , optparse-applicative
+    , profunctors
+    , random
+    , raytracing
+    , rio
+    , rio-orphans
+    , semigroupoids
+    , semigroups
+    , splitmix
+    , strict
+    , tasty
+    , tasty-bench
+    , transformers
+    , vector
+    , vector-algorithms
+    , vector-th-unbox
+  default-language: Haskell2010

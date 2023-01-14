@@ -195,3 +195,20 @@ tests:
     - raytracing
     - tasty
     - tasty-inspection-testing
+
+benchmarks:
+  raytracing-bench:
+    source-dirs: bench
+    main: bench.hs
+    build-tools:
+    - tasty-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - '"-with-rtsopts=-N6 -A32m -T"'
+    - -O2
+    dependencies:
+    - raytracing
+    - tasty-bench
+    - tasty
+
