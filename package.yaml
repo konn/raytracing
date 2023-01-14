@@ -27,6 +27,9 @@ dependencies:
 - bytestring-trie
 - distributive
 - dlist
+- effectful
+- effectful-core
+- effectful-plugin
 - fmlist
 - foldl
 - generic-lens

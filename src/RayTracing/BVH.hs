@@ -24,8 +24,6 @@ import Control.Foldl qualified as L
 import Control.Lens (both, sumOf, view, (%~))
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict (ST, runST)
-import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.State.Strict (State)
 import Data.Function ((&))
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
@@ -40,6 +38,9 @@ import Data.Vector.Generic.Mutable qualified as MG
 import Data.Vector.Hybrid qualified as HV
 import Data.Vector.Hybrid.Mutable qualified as HMV
 import Data.Vector.Unboxed qualified as U
+import Effectful
+import Effectful.NonDet (NonDet)
+import Effectful.State.Static.Local (State)
 import GHC.Exts (UnliftedType)
 import Linear (V3 (..), _x, _y, _z)
 import Linear.Affine ((.-.))
@@ -199,9 +200,9 @@ nearestHit ::
   Double ->
   Ray ->
   BVH a ->
-  State g (Maybe (HitRecord, a))
+  Eff '[NonDet, State g] (HitRecord, a)
 {-# INLINE nearestHit #-}
-nearestHit mtmin mtmax0 ray bvh = runMaybeT $ go mtmax0 (unBVH bvh)
+nearestHit mtmin mtmax0 ray bvh = go mtmax0 (unBVH bvh)
   where
     {-# INLINE go #-}
     go _ Empty# = empty
@@ -209,7 +210,7 @@ nearestHit mtmin mtmax0 ray bvh = runMaybeT $ go mtmax0 (unBVH bvh)
       forM_ (bvhBBox tree) $ \bbox ->
         guard $ hitsBox ray bbox mtmin mtmax
       case tree of
-        Leaf# _ as -> MaybeT $ withNearestHitWithin mtmin mtmax ray as
+        Leaf# _ as -> withNearestHitWithin mtmin mtmax ray as
         Branch# _ _ l r ->
           ( do
               hit@(Hit {hitTime}, _) <- go mtmax l

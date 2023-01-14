@@ -17,9 +17,10 @@ module RayTracing.Scene (
   module RayTracing.BVH,
 ) where
 
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Control.Monad.Trans.State.Strict (State)
 import Data.Image.Types (Pixel, RGB)
+import Effectful (Eff)
+import Effectful.NonDet (OnEmptyPolicy (..), runNonDet)
+import Effectful.State.Static.Local (State)
 import GHC.Generics
 import Graphics.ColorModel qualified as C
 import Numeric.Utils
@@ -48,7 +49,7 @@ rayColour ::
   SceneOf sh mat ->
   Int ->
   Ray ->
-  State g (Pixel RGB Double)
+  Eff '[State g] (Pixel RGB Double)
 {-# INLINE rayColour #-}
 rayColour eps Scene {..} = go
   where
@@ -56,13 +57,13 @@ rayColour eps Scene {..} = go
     go !lvl r
       | lvl <= 0 = pure 0.0
       | otherwise =
-          nearestHit eps Infinity r objects >>= \case
-            Just (hit, obj) -> do
+          runNonDet OnEmptyKeep (nearestHit eps Infinity r objects) >>= \case
+            Right (hit, obj) -> do
               let emission =
                     C.Pixel $
                       emitted obj (textureCoordinate hit) (coord hit)
-              runMaybeT (scatter obj hit r) >>= \case
-                Nothing -> pure emission
-                Just (attenuation, scattered) ->
+              runNonDet OnEmptyKeep (scatter obj hit r) >>= \case
+                Left {} -> pure emission
+                Right (attenuation, scattered) ->
                   (emission +) . (attenuation .*) <$> go (lvl - 1) scattered
             _ -> pure $ background r

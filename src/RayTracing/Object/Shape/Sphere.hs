@@ -3,9 +3,9 @@
 
 module RayTracing.Object.Shape.Sphere (Sphere (..)) where
 
+import Control.Applicative (empty)
 import Control.Lens ((^.))
 import Control.Monad (guard)
-import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Foldable (find)
 import GHC.Generics
 import Linear
@@ -22,7 +22,7 @@ data Sphere = Sphere
   deriving (Show, Eq, Ord, Generic)
 
 instance Hittable Sphere where
-  hitWithin Sphere {..} tmin tmax r@Ray {..} = MaybeT $ pure $ do
+  hitWithin Sphere {..} tmin tmax r@Ray {..} = do
     let !oc = rayOrigin .-. center
         !a = quadrance rayDirection
         !b = oc `dot` rayDirection
@@ -30,9 +30,10 @@ instance Hittable Sphere where
         !delta = b * b - a * c
     guard $ delta >= 0
     hitTime <-
-      find
-        (\t -> tmin < t && t < tmax)
-        [(-b - sqrt delta) / a, (-b + sqrt delta) / a]
+      maybe empty pure $
+        find
+          (\t -> tmin < t && t < tmax)
+          [(-b - sqrt delta) / a, (-b + sqrt delta) / a]
     let p = rayAt hitTime r
         n = unsafeDir $ (p .-. center) ^/ radius
         !theta = acos (-unDir n ^. _y)

@@ -51,6 +51,7 @@ library
       RayTracing.Texture
       RayTracing.Texture.Image
       RayTracing.Texture.Noise.Perlin
+      System.Random.Effectful
       System.Random.Orphans
       System.Random.Stateful.STUnbox
       System.Random.Utils
@@ -67,6 +68,9 @@ library
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -109,6 +113,9 @@ executable blue-to-white
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -152,6 +159,9 @@ executable camera
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -196,6 +206,9 @@ executable diffuse
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -239,6 +252,9 @@ executable gradient-with-simple-sphere
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -282,6 +298,9 @@ executable metal-spheres
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -325,6 +344,9 @@ executable metals-and-glasses
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -369,6 +391,9 @@ executable next-week
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -413,6 +438,9 @@ executable one-weekend-finale
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -457,6 +485,9 @@ executable spheres
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -500,6 +531,9 @@ executable spheres-antialias
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -547,6 +581,9 @@ test-suite raytracing-test
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens
@@ -595,6 +632,9 @@ benchmark raytracing-bench
     , bytestring-trie
     , distributive
     , dlist
+    , effectful
+    , effectful-core
+    , effectful-plugin
     , fmlist
     , foldl
     , generic-lens

@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GHC2021 #-}
@@ -25,18 +26,17 @@ module RayTracing.Object.Material (
   Isotropic (..),
 ) where
 
-import Control.Applicative (Alternative (..))
 import Control.Lens ((^.))
 import Control.Monad (guard, join)
-import Control.Monad.Trans.Class (MonadTrans (..))
-import Control.Monad.Trans.Maybe (MaybeT)
-import Control.Monad.Trans.State.Strict (State)
 import Data.Coerce (coerce)
 import Data.Generics.Labels ()
 import Data.Image.Types
 import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
+import Effectful
+import Effectful.NonDet
+import Effectful.State.Static.Local (State)
 import GHC.Generics (Generic, Generic1)
 import Graphics.ColorModel
 import Linear
@@ -46,7 +46,8 @@ import RayTracing.Object.Shape (HitRecord (..))
 import RayTracing.Ray
 import RayTracing.Texture
 import System.Random (RandomGen)
-import System.Random.Stateful (StateGenM (..), applyRandomGenM, randomRM)
+import System.Random.Effectful (StaticLocalStateGenM (..))
+import System.Random.Stateful (applyRandomGenM, randomRM)
 import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere)
 
 newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
@@ -98,7 +99,12 @@ instance Material SomeMaterial where
   {-# INLINE emitted #-}
 
 class Material a where
-  scatter :: RandomGen g => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)
+  scatter ::
+    RandomGen g =>
+    a ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   emitted :: a -> Point V2 Double -> Point V3 Double -> Color RGB Double
   emitted = const $ const $ const 0
   {-# INLINE emitted #-}
@@ -108,8 +114,15 @@ newtype Lambertian txt = Lambertian {albedo :: txt}
 
 instance Texture txt => Material (Lambertian txt) where
   {-# INLINE scatter #-}
+  scatter ::
+    forall g.
+    (RandomGen g) =>
+    Lambertian txt ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   scatter Lambertian {..} Hit {..} _ = do
-    d <- applyRandomGenM randomPointOnUnitSphere StateGenM
+    d <- applyRandomGenM randomPointOnUnitSphere $ StaticLocalStateGenM @g
     let sDir = unDir normal ^+^ unDir d
         scattered =
           Ray
@@ -126,8 +139,15 @@ newtype Hemispheric txt = Hemispheric {albedo :: txt}
 
 instance Texture txt => Material (Hemispheric txt) where
   {-# INLINE scatter #-}
+  scatter ::
+    forall g.
+    (RandomGen g) =>
+    Hemispheric txt ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   scatter Hemispheric {..} Hit {..} _ = do
-    d <- applyRandomGenM (randomPointOnUnitHemisphere normal) StateGenM
+    d <- applyRandomGenM (randomPointOnUnitHemisphere normal) $ StaticLocalStateGenM @g
     let sDir = unDir normal ^+^ unDir d
         scattered =
           Ray
@@ -155,8 +175,15 @@ data FuzzyMetal txt = FuzzyMetal {albedo :: !txt, fuzz :: !Double}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
 instance Texture txt => Material (FuzzyMetal txt) where
+  scatter ::
+    forall g.
+    (RandomGen g) =>
+    FuzzyMetal txt ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   scatter FuzzyMetal {..} Hit {..} inRay = do
-    f <- lift $ (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere StateGenM
+    f <- (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere (StaticLocalStateGenM @g)
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled ^+^ unDir f}
         col = colorAt albedo textureCoordinate coord
@@ -201,8 +228,15 @@ newtype Dielectric = Dielectric {refractiveIndex :: Double}
   deriving (Show, Eq, Ord, Generic)
 
 instance Material Dielectric where
+  scatter ::
+    forall g.
+    RandomGen g =>
+    Dielectric ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   scatter di h@Hit {..} r = do
-    thresh <- randomRM (0.0, 1.0) StateGenM
+    thresh <- randomRM (0.0, 1.0) $ StaticLocalStateGenM @g
     let scat =
           fromMaybe (reflectAround normal $ r ^. #rayDirection) $
             refract h di normal (dir $ r ^. #rayDirection) thresh
@@ -222,6 +256,13 @@ newtype Isotropic txt = Isotropic {albedo :: txt}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
 
 instance Texture txt => Material (Isotropic txt) where
+  scatter ::
+    forall g.
+    (RandomGen g) =>
+    Isotropic txt ->
+    HitRecord ->
+    Ray ->
+    Eff '[NonDet, State g] (Attenuation RGB Double, Ray)
   scatter Isotropic {..} h r = do
-    d <- applyRandomGenM randomPointOnUnitSphere StateGenM
+    d <- applyRandomGenM randomPointOnUnitSphere $ StaticLocalStateGenM @g
     pure (Attenuation $ colorAt albedo (h ^. #textureCoordinate) (h ^. #coord), Ray {rayOrigin = r ^. #rayOrigin, rayDirection = unDir d})

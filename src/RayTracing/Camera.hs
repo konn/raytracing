@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -12,14 +13,16 @@ module RayTracing.Camera (
 ) where
 
 import Control.Applicative (liftA2)
-import Control.Monad.Trans.State.Strict (State)
+import Effectful (Eff)
+import Effectful.State.Static.Local (State)
 import GHC.Generics (Generic)
 import Linear
 import Linear.Affine
 import Linear.Angle
 import Linear.Direction
 import RayTracing.Ray
-import System.Random.Stateful (RandomGen, StateGenM (..), applyRandomGenM)
+import System.Random.Effectful (StaticLocalStateGenM (..))
+import System.Random.Stateful (StdGen, applyRandomGenM)
 import System.Random.Utils (randomPointInUnitDisk)
 
 data Camera = Camera
@@ -75,7 +78,7 @@ mkCamera CameraConfig {..} =
       lensRadius = (/ 2) . aperture <$> thinLens
    in Camera {..}
 
-getRay :: RandomGen g => Camera -> Point V2 Double -> State g Ray
+getRay :: Camera -> Point V2 Double -> Eff '[State StdGen] Ray
 getRay Camera {..} (P (V2 s t)) = do
   offset <-
     maybe
@@ -85,7 +88,7 @@ getRay Camera {..} (P (V2 s t)) = do
             . liftA2 (^*) (V2 (unDir xUnit) (unDir yUnit))
             . unP
             . (r *^)
-            <$> applyRandomGenM randomPointInUnitDisk StateGenM
+            <$> applyRandomGenM randomPointInUnitDisk (StaticLocalStateGenM @StdGen)
       )
       lensRadius
   let rayDirection =

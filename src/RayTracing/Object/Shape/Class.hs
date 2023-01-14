@@ -1,10 +1,12 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fplugin Effectful.Plugin #-}
 
 module RayTracing.Object.Shape.Class (
   Hittable (..),
@@ -16,16 +18,17 @@ module RayTracing.Object.Shape.Class (
   withNearestHitWithin,
 ) where
 
+import Control.Applicative (empty)
 import Control.Arrow ((&&&), (>>>))
 import Control.Lens (view, (%~), (.~))
-import Control.Monad (join, (<$!>))
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Control.Monad.Trans.State.Strict (State)
+import Control.Monad (join, (<$!>), (<=<))
 import Data.FMList (FMList)
 import Data.Generics.Labels ()
 import Data.List (foldl')
-import Data.Strict qualified as Strict
 import Data.Strict.Maybe qualified as StM
+import Effectful
+import Effectful.NonDet (NonDet, OnEmptyPolicy (..), runNonDet)
+import Effectful.State.Static.Local (State)
 import GHC.Generics (Generic, Generic1)
 import Linear
 import Linear.Affine
@@ -62,7 +65,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
    in Hit {..}
 
 class Hittable obj where
-  hitWithin :: RandomGen g => obj -> Double -> Double -> Ray -> MaybeT (State g) HitRecord
+  hitWithin :: RandomGen g => obj -> Double -> Double -> Ray -> Eff '[NonDet, State g] HitRecord
   boundingBox :: obj -> Maybe BoundingBox
 
 newtype FoldHittables t obj = Hittables {hittables :: t obj}
@@ -106,27 +109,22 @@ withNearestHitWithin ::
   Double ->
   Ray ->
   t obj ->
-  State g (Maybe (HitRecord, obj))
+  Eff '[NonDet, State g] (HitRecord, obj)
 withNearestHitWithin tmin tmax ray =
-  fmap
-    ( fmap (record &&& object)
-        . Strict.toLazy
-    )
-    . foldl'
+  StM.maybe empty (pure . (record &&& object))
+    <=< foldl'
       ( \sofarM obj -> do
           !sofar <- sofarM
           let tmax' = StM.maybe tmax nearestSoFar sofar
-          StM.maybe
-            sofar
-            StM.Just
-            . fmap (toRec obj)
-            . Strict.toStrict
-            <$!> runMaybeT (hitWithin obj tmin tmax' ray)
+          either
+            (const sofar)
+            (StM.Just . toRec obj)
+            <$!> inject (runNonDet OnEmptyKeep (hitWithin obj tmin tmax' ray))
       )
       (pure StM.Nothing)
 
 instance (Foldable t, Hittable obj) => Hittable (FoldHittables t obj) where
-  hitWithin obj tmin tmax ray = fst <$> MaybeT (withNearestHitWithin tmin tmax ray obj)
+  hitWithin obj tmin tmax ray = fst <$> withNearestHitWithin tmin tmax ray obj
   {-# INLINE hitWithin #-}
   boundingBox (Hittables objs) =
     join $ foldMapM (fmap Just . boundingBox) objs
