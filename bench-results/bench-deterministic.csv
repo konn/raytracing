@@ -1,0 +1,5 @@
+Name,Mean (ps),2*Stdev (ps),Allocated,Copied,Peak Memory
+All.cornell-box-solid.width = 50.random-antialias,65893449996,3153023564,848788473,230224,231735296
+All.cornell-box-solid.width = 100.random-antialias,262084499980,16236089612,3381334862,227409,253755392
+All.cornell-box-solid.width = 200.random-antialias,1053431600000,50154110308,13529260561,558096,307232768
+All.cornell-box-solid.width = 400.random-antialias,4211381600000,60084040982,54603285212,1958956,584056832
