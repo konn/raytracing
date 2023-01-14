@@ -166,7 +166,6 @@ cornellBoxScene mode =
                   Box (p3 (0, 0, 0)) (p3 (165, 165, 165))
                     & Rotate (axisAngleA yDir (-18 @@ deg))
                     & Translate (V3 130 0 65)
-                    & ConstantMedium 0.005
              in ( mkSomeObject b1 $ Lambertian $ ColorRGB 0 0 0
                 , mkSomeObject b2 $ Lambertian $ ColorRGB 1 1 1
                 )
@@ -181,7 +180,7 @@ cornellBoxScene mode =
           , mkSomeObject topWall white
           , mkSomeObject rearWall white
           , box1
-          , mkSomeObject box2 $ Isotropic $ ColorRGB 1 1 1
+          , box2
           ]
    in Scene {objects, background = const 0}
 
