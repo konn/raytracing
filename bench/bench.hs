@@ -53,15 +53,6 @@ benchmarks =
         ]
       | sz <- [50, 100, 200, 400]
       ]
-  , bgroup
-      "cornell-box-smoke"
-      [ bgroup
-        ("width = " <> show sz)
-        [ bench "random-antialias" $ nf (mkCornellBox Smoke sz theGen) Random
-        , bench "stencil-antialias" $ nf (mkCornellBox Smoke sz theGen) Stencil
-        ]
-      | sz <- [50, 100, 200, 400]
-      ]
   ]
 
 aCamera :: Camera
@@ -119,7 +110,7 @@ p3 :: (a, a, a) -> Point V3 a
 {-# INLINE p3 #-}
 p3 (x, y, z) = P $ V3 x y z
 
-data CornellMode = Solid | Smoke
+data CornellMode = Solid
   deriving (Show, Eq, Ord, Generic)
 
 mkCornellBox :: RandomGen g => CornellMode -> Int -> g -> Antialiasing -> WordImage
@@ -143,20 +134,6 @@ cornellBoxScene mode =
       bucketSize = 8
       (box1, box2) =
         case mode of
-          Smoke ->
-            let b1 =
-                  Box (p3 (0, 0, 0)) (p3 (165, 330, 165))
-                    & Rotate (axisAngleA yDir (15 @@ deg))
-                    & Translate (V3 265 0 295)
-                    & ConstantMedium 0.01
-                b2 =
-                  Box (p3 (0, 0, 0)) (p3 (165, 165, 165))
-                    & Rotate (axisAngleA yDir (-18 @@ deg))
-                    & Translate (V3 130 0 65)
-                    & ConstantMedium 0.005
-             in ( mkSomeObject b1 $ Isotropic $ ColorRGB 0 0 0
-                , mkSomeObject b2 $ Isotropic $ ColorRGB 1 1 1
-                )
           Solid ->
             let b1 =
                   Box (p3 (0, 0, 0)) (p3 (165, 330, 165))
@@ -166,7 +143,6 @@ cornellBoxScene mode =
                   Box (p3 (0, 0, 0)) (p3 (165, 165, 165))
                     & Rotate (axisAngleA yDir (-18 @@ deg))
                     & Translate (V3 130 0 65)
-                    & ConstantMedium 0.005
              in ( mkSomeObject b1 $ Lambertian $ ColorRGB 0 0 0
                 , mkSomeObject b2 $ Lambertian $ ColorRGB 1 1 1
                 )
@@ -181,7 +157,7 @@ cornellBoxScene mode =
           , mkSomeObject topWall white
           , mkSomeObject rearWall white
           , box1
-          , mkSomeObject box2 $ Isotropic $ ColorRGB 1 1 1
+          , box2
           ]
    in Scene {objects, background = const 0}
 

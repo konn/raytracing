@@ -19,13 +19,10 @@ module RayTracing.BVH (
   fromObjectsWithBinBucket,
 ) where
 
-import Control.Applicative (Alternative (..), (<|>))
 import Control.Foldl qualified as L
 import Control.Lens (both, sumOf, view, (%~))
 import Control.Monad (forM_, guard)
 import Control.Monad.ST.Strict (ST, runST)
-import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.State.Strict (State)
 import Data.Function ((&))
 import Data.Kind (Constraint, Type)
 import Data.Maybe (fromMaybe)
@@ -46,7 +43,6 @@ import Linear.Affine ((.-.))
 import RayTracing.BoundingBox
 import RayTracing.Object.Shape
 import RayTracing.Ray (Ray)
-import System.Random (RandomGen)
 
 type BVH :: Type -> Type
 newtype BVH a = BVH {unBVH :: (() :: Constraint) => BVH# a}
@@ -194,28 +190,27 @@ boundingBox' :: Hittable obj => obj -> BoundingBox
 boundingBox' = fromMaybe (error "BoundingBox not found!") . boundingBox
 
 nearestHit ::
-  (Hittable a, RandomGen g) =>
+  Hittable a =>
   Double ->
   Double ->
   Ray ->
   BVH a ->
-  State g (Maybe (HitRecord, a))
+  Maybe (HitRecord, a)
 {-# INLINE nearestHit #-}
-nearestHit mtmin mtmax0 ray bvh = runMaybeT $ go mtmax0 (unBVH bvh)
+nearestHit mtmin mtmax0 ray bvh = go mtmax0 (unBVH bvh)
   where
     {-# INLINE go #-}
-    go _ Empty# = empty
+    go _ Empty# = Nothing
     go mtmax tree = do
       forM_ (bvhBBox tree) $ \bbox ->
         guard $ hitsBox ray bbox mtmin mtmax
       case tree of
-        Leaf# _ as -> MaybeT $ withNearestHitWithin mtmin mtmax ray as
+        Leaf# _ as -> withNearestHitWithin mtmin mtmax ray as
         Branch# _ _ l r ->
-          ( do
-              hit@(Hit {hitTime}, _) <- go mtmax l
-              go hitTime r <|> pure hit
-          )
-            <|> go mtmax r
+          case go mtmax l of
+            Just hit@(Hit {hitTime}, _) ->
+              Just $! fromMaybe hit (go hitTime r)
+            Nothing -> go mtmax r
 
 bvhBBox :: BVH# a -> Maybe BoundingBox
 {-# INLINE bvhBBox #-}

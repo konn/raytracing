@@ -55,14 +55,12 @@ rayColour eps Scene {..} = go
     {-# INLINE go #-}
     go !lvl r
       | lvl <= 0 = pure 0.0
-      | otherwise =
-          nearestHit eps Infinity r objects >>= \case
-            Just (hit, obj) -> do
-              let emission =
-                    C.Pixel $
-                      emitted obj (textureCoordinate hit) (coord hit)
-              runMaybeT (scatter obj hit r) >>= \case
-                Nothing -> pure emission
-                Just (attenuation, scattered) ->
-                  (emission +) . (attenuation .*) <$> go (lvl - 1) scattered
-            _ -> pure $ background r
+      | Just (hit, obj) <- nearestHit eps Infinity r objects = do
+          let emission =
+                C.Pixel $
+                  emitted obj (textureCoordinate hit) (coord hit)
+          runMaybeT (scatter obj hit r) >>= \case
+            Nothing -> pure emission
+            Just (attenuation, scattered) ->
+              (emission +) . (attenuation .*) <$> go (lvl - 1) scattered
+      | otherwise = pure $ background r

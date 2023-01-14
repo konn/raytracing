@@ -18,7 +18,6 @@ module RayTracing.Object.Shape.Plane (
 import Control.Applicative (liftA2)
 import Control.Lens (both, (%~), (^.))
 import Control.Monad (guard)
-import Control.Monad.Trans.Maybe (MaybeT (..))
 import Control.Monad.Zip (munzip)
 import Data.Function ((&))
 import Data.Generics.Labels ()
@@ -165,7 +164,7 @@ fromPlaneCoord normal d uvDir (P uv) =
 
 instance Hittable Plane where
   {-# INLINE hitWithin #-}
-  hitWithin Plane {..} mtmin mtmax ray@Ray {..} = MaybeT $ pure $ do
+  hitWithin Plane {..} mtmin mtmax ray@Ray {..} = do
     let !denom = unDir planeNormal `dot` rayDirection
     guard $ denom /= 0
     let !hitTime = (planeSection - dot (unDir planeNormal) (unP rayOrigin)) / denom

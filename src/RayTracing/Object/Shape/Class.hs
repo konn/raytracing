@@ -18,9 +18,7 @@ module RayTracing.Object.Shape.Class (
 
 import Control.Arrow ((&&&), (>>>))
 import Control.Lens (view, (%~), (.~))
-import Control.Monad (join, (<$!>))
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Control.Monad.Trans.State.Strict (State)
+import Control.Monad (join)
 import Data.FMList (FMList)
 import Data.Generics.Labels ()
 import Data.List (foldl')
@@ -33,7 +31,6 @@ import Linear.Direction
 import RIO (foldMapM)
 import RayTracing.BoundingBox
 import RayTracing.Ray (Ray (..))
-import System.Random (RandomGen)
 
 data HitRecord = Hit
   { coord :: {-# UNPACK #-} !(Point V3 Double)
@@ -62,7 +59,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
    in Hit {..}
 
 class Hittable obj where
-  hitWithin :: RandomGen g => obj -> Double -> Double -> Ray -> MaybeT (State g) HitRecord
+  hitWithin :: obj -> Double -> Double -> Ray -> Maybe HitRecord
   boundingBox :: obj -> Maybe BoundingBox
 
 newtype FoldHittables t obj = Hittables {hittables :: t obj}
@@ -101,32 +98,28 @@ toRec object record =
    in NearestRecord {..}
 
 withNearestHitWithin ::
-  (Foldable t, Hittable obj, RandomGen g) =>
+  (Foldable t, Hittable obj) =>
   Double ->
   Double ->
   Ray ->
   t obj ->
-  State g (Maybe (HitRecord, obj))
+  Maybe (HitRecord, obj)
 withNearestHitWithin tmin tmax ray =
-  fmap
-    ( fmap (record &&& object)
-        . Strict.toLazy
-    )
+  fmap (record &&& object)
+    . Strict.toLazy
     . foldl'
-      ( \sofarM obj -> do
-          !sofar <- sofarM
+      ( \sofar obj ->
           let tmax' = StM.maybe tmax nearestSoFar sofar
-          StM.maybe
-            sofar
-            StM.Just
-            . fmap (toRec obj)
-            . Strict.toStrict
-            <$!> runMaybeT (hitWithin obj tmin tmax' ray)
+           in StM.maybe
+                sofar
+                StM.Just
+                $ Strict.toStrict
+                  (toRec obj <$> hitWithin obj tmin tmax' ray)
       )
-      (pure StM.Nothing)
+      StM.Nothing
 
 instance (Foldable t, Hittable obj) => Hittable (FoldHittables t obj) where
-  hitWithin obj tmin tmax ray = fst <$> MaybeT (withNearestHitWithin tmin tmax ray obj)
+  hitWithin obj tmin tmax ray = fst <$> withNearestHitWithin tmin tmax ray obj
   {-# INLINE hitWithin #-}
   boundingBox (Hittables objs) =
     join $ foldMapM (fmap Just . boundingBox) objs
