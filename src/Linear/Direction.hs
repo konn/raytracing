@@ -1,6 +1,5 @@
-{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GHC2021 #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Directional (unit) vectors, as provided in diagrams-lib.
@@ -29,13 +28,23 @@ module Linear.Direction (
 
 import Control.Lens (coerced, (%~))
 import Data.Coerce (coerce)
+import Data.Vector.Generic qualified as G
+import Data.Vector.Generic.Mutable qualified as MG
 import Data.Vector.Unboxed qualified as U
-import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Generics (Generic, Generic1)
 import Linear
 
 newtype Dir v a = Dir {_unDir :: v a}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable)
+  deriving (U.Unbox) via v a
+
+newtype instance U.Vector (Dir v a) = V_Dir (U.Vector (v a))
+
+newtype instance U.MVector s (Dir v a) = MV_Dir (U.MVector s (v a))
+
+deriving newtype instance (U.Unbox (v a)) => G.Vector U.Vector (Dir v a)
+
+deriving newtype instance (U.Unbox (v a)) => MG.MVector U.MVector (Dir v a)
 
 (*|) :: forall v a. (Functor v, Num a) => a -> Dir v a -> v a
 (*|) = coerce $ (*^) @v @a
@@ -90,20 +99,14 @@ rotateD :: (Conjugate a, RealFloat a) => Quaternion a -> Dir V3 a -> Dir V3 a
 {-# INLINE rotateD #-}
 rotateD = (coerced %~) . rotate
 
-reflectAround :: Num a => Dir V3 a -> V3 a -> V3 a
+reflectAround :: (Num a) => Dir V3 a -> V3 a -> V3 a
 reflectAround (Dir n) v = v ^-^ 2 * n `dot` v *^ n
-
-derivingUnbox
-  "Dir"
-  [t|forall v a. (U.Unbox (v a)) => Dir v a -> v a|]
-  [|_unDir|]
-  [|Dir|]
 
 dir3 :: (Floating a, Epsilon a) => a -> a -> a -> Dir V3 a
 {-# INLINE dir3 #-}
 dir3 = fmap (fmap dir) . V3
 
-xDir, yDir, zDir :: Floating a => Dir V3 a
+xDir, yDir, zDir :: (Floating a) => Dir V3 a
 {-# INLINE xDir #-}
 xDir = Dir $ V3 1 0 0
 {-# INLINE yDir #-}

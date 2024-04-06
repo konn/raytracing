@@ -1,9 +1,9 @@
 {-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnliftedDatatypes #-}
 
@@ -20,17 +20,35 @@ import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
 import Data.Strict.Tuple (Pair (..))
-import Data.Vector.Unboxed.Deriving (derivingUnbox)
+import Data.Vector.Generic qualified as G
+import Data.Vector.Generic.Mutable qualified as MG
+import Data.Vector.Unboxed qualified as U
 import GHC.Exts (UnliftedType)
 import GHC.Generics (Generic)
 import Linear (V3 (..), _xy, _yz, _zx)
 import Linear.Affine
 import Linear.Matrix (M23)
-import Linear.V2 (V2 (..))
 import RayTracing.Ray (Ray (..))
 
 data BoundingBox = MkBoundingBox {lowerBound, upperBound :: {-# UNPACK #-} !(Point V3 Double)}
   deriving (Show, Eq, Ord, Generic)
+  deriving (U.Unbox) via (M23 Double)
+
+deriving anyclass instance U.IsoUnbox BoundingBox (M23 Double)
+
+newtype instance U.Vector BoundingBox = V_BoundingBox (U.Vector (M23 Double))
+
+newtype instance U.MVector s BoundingBox = MV_BoundingBox (U.MVector s (M23 Double))
+
+deriving via
+  BoundingBox `U.As` M23 Double
+  instance
+    G.Vector U.Vector BoundingBox
+
+deriving via
+  BoundingBox `U.As` M23 Double
+  instance
+    MG.MVector U.MVector BoundingBox
 
 volume :: BoundingBox -> Double
 {-# INLINE volume #-}
@@ -83,9 +101,3 @@ data Interval :: UnliftedType where
 
 mkIntvl :: Double -> Double -> Interval
 mkIntvl a b = if a < b then a :.. b else b :.. a
-
-derivingUnbox
-  "BoundingBox"
-  [t|BoundingBox -> M23 Double|]
-  [|\(MkBoundingBox (P l) (P u)) -> V2 l u|]
-  [|\(V2 l u) -> MkBoundingBox (P l) (P u)|]

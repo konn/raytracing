@@ -1,12 +1,12 @@
+{-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fprint-potential-instances #-}
@@ -36,7 +36,6 @@ import Data.Generics.Labels ()
 import Data.Image.Types
 import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
-import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import GHC.Generics (Generic, Generic1)
 import Graphics.ColorModel
 import Linear
@@ -51,36 +50,34 @@ import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere
 
 newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
   deriving (Generic)
-  deriving newtype (Num, Fractional)
+  deriving newtype (Num, Fractional, Unbox)
 
 deriving newtype instance
   (cs ~ RGB, e ~ Double) => Texture (Attenuation cs e)
 
-deriving instance Show (Color cs a) => Show (Attenuation cs a)
+deriving instance (Show (Color cs a)) => Show (Attenuation cs a)
 
-deriving instance Eq (Color cs a) => Eq (Attenuation cs a)
+deriving instance (Eq (Color cs a)) => Eq (Attenuation cs a)
 
-deriving instance Ord (Color cs a) => Ord (Attenuation cs a)
+deriving instance (Ord (Color cs a)) => Ord (Attenuation cs a)
 
-deriving instance Functor (Color cs) => Functor (Attenuation cs)
+deriving instance (Functor (Color cs)) => Functor (Attenuation cs)
 
-deriving instance Foldable (Color cs) => Foldable (Attenuation cs)
+deriving instance (Foldable (Color cs)) => Foldable (Attenuation cs)
 
-deriving instance Traversable (Color cs) => Traversable (Attenuation cs)
+deriving instance (Traversable (Color cs)) => Traversable (Attenuation cs)
 
-deriving newtype instance Applicative (Color cs) => Applicative (Attenuation cs)
+deriving newtype instance (Applicative (Color cs)) => Applicative (Attenuation cs)
 
-deriving newtype instance Additive (Color cs) => Additive (Attenuation cs)
+deriving newtype instance (Additive (Color cs)) => Additive (Attenuation cs)
 
 pattern MkAttn :: a -> a -> a -> Attenuation RGB a
 pattern MkAttn {redRatio, greenRatio, blueRatio} =
   Attenuation (ColorRGB redRatio greenRatio blueRatio)
 
-derivingUnbox
-  "Attenuation"
-  [t|forall cs a. (ColorModel cs a) => Attenuation cs a -> Pixel cs a|]
-  [|coerce|]
-  [|coerce|]
+newtype instance U.Vector (Attenuation cs a) = V_Attenuation (U.Vector (Pixel cs a))
+
+newtype instance U.MVector s (Attenuation cs a) = MV_Attenuation (U.MVector s (Pixel cs a))
 
 infixl 7 .*
 
@@ -89,7 +86,7 @@ infixl 7 .*
 (.*) = (*) . coerce
 
 data SomeMaterial where
-  MkSomeMaterial :: Material a => a -> SomeMaterial
+  MkSomeMaterial :: (Material a) => a -> SomeMaterial
 
 instance Material SomeMaterial where
   scatter = \case (MkSomeMaterial mat) -> scatter mat
@@ -98,7 +95,7 @@ instance Material SomeMaterial where
   {-# INLINE emitted #-}
 
 class Material a where
-  scatter :: RandomGen g => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)
+  scatter :: (RandomGen g) => a -> HitRecord -> Ray -> MaybeT (State g) (Attenuation RGB Double, Ray)
   emitted :: a -> Point V2 Double -> Point V3 Double -> Color RGB Double
   emitted = const $ const $ const 0
   {-# INLINE emitted #-}
@@ -106,7 +103,7 @@ class Material a where
 newtype Lambertian txt = Lambertian {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
 
-instance Texture txt => Material (Lambertian txt) where
+instance (Texture txt) => Material (Lambertian txt) where
   {-# INLINE scatter #-}
   scatter Lambertian {..} Hit {..} _ = do
     d <- applyRandomGenM randomPointOnUnitSphere StateGenM
@@ -124,7 +121,7 @@ instance Texture txt => Material (Lambertian txt) where
 newtype Hemispheric txt = Hemispheric {albedo :: txt}
   deriving (Show, Eq, Ord, Generic)
 
-instance Texture txt => Material (Hemispheric txt) where
+instance (Texture txt) => Material (Hemispheric txt) where
   {-# INLINE scatter #-}
   scatter Hemispheric {..} Hit {..} _ = do
     d <- applyRandomGenM (randomPointOnUnitHemisphere normal) StateGenM
@@ -142,7 +139,7 @@ instance Texture txt => Material (Hemispheric txt) where
 newtype Metal txt = Metal {albedo :: txt}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
-instance Texture txt => Material (Metal txt) where
+instance (Texture txt) => Material (Metal txt) where
   scatter Metal {..} Hit {..} inRay = do
     let refled = reflectAround normal $ inRay ^. #rayDirection
         scatterred = Ray {rayOrigin = coord, rayDirection = refled}
@@ -154,7 +151,7 @@ instance Texture txt => Material (Metal txt) where
 data FuzzyMetal txt = FuzzyMetal {albedo :: !txt, fuzz :: !Double}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
-instance Texture txt => Material (FuzzyMetal txt) where
+instance (Texture txt) => Material (FuzzyMetal txt) where
   scatter FuzzyMetal {..} Hit {..} inRay = do
     f <- lift $ (clamp (0.0, 1.0) fuzz *^) <$> applyRandomGenM randomPointOnUnitSphere StateGenM
     let refled = reflectAround normal $ inRay ^. #rayDirection
@@ -212,7 +209,7 @@ instance Material Dielectric where
 newtype DiffuseLight txt = DiffuseLight {emit :: txt}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
 
-instance Texture txt => Material (DiffuseLight txt) where
+instance (Texture txt) => Material (DiffuseLight txt) where
   scatter = const $ const $ const empty
   {-# INLINE scatter #-}
   emitted DiffuseLight {..} = colorAt emit
@@ -221,7 +218,7 @@ instance Texture txt => Material (DiffuseLight txt) where
 newtype Isotropic txt = Isotropic {albedo :: txt}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
 
-instance Texture txt => Material (Isotropic txt) where
+instance (Texture txt) => Material (Isotropic txt) where
   scatter Isotropic {..} h r = do
     d <- applyRandomGenM randomPointOnUnitSphere StateGenM
     pure (Attenuation $ colorAt albedo (h ^. #textureCoordinate) (h ^. #coord), Ray {rayOrigin = r ^. #rayOrigin, rayDirection = unDir d})

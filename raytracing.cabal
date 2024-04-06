@@ -115,7 +115,6 @@ library
     transformers,
     vector,
     vector-algorithms,
-    vector-th-unbox,
 
 executable blue-to-white
   import: defaults, exes
