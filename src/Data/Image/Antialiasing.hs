@@ -1,5 +1,4 @@
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 
 module Data.Image.Antialiasing (randomSamplingAntialias, stencilAntialiasing) where

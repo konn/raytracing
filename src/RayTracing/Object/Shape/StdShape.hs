@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 
 module RayTracing.Object.Shape.StdShape (
@@ -36,7 +35,7 @@ type ToStdShape :: TYPE rep -> Constraint
 class ToStdShape a where
   toStdShape :: a -> StdShape
 
-instance ToStdShape a => ToStdShape [a] where
+instance (ToStdShape a) => ToStdShape [a] where
   toStdShape = Compound . map toStdShape
   {-# INLINE toStdShape #-}
   {-# SPECIALIZE instance ToStdShape [StdShape] #-}
@@ -53,21 +52,21 @@ instance ToStdShape Sphere where
   toStdShape = ASphere
   {-# INLINE toStdShape #-}
 
-instance ToStdShape sh => ToStdShape (Translate sh) where
+instance (ToStdShape sh) => ToStdShape (Translate sh) where
   {-# SPECIALIZE instance ToStdShape (Translate StdShape) #-}
   {-# SPECIALIZE instance ToStdShape (Translate Sphere) #-}
   {-# SPECIALIZE instance ToStdShape (Translate Plane) #-}
   toStdShape = Translated . fmap toStdShape
   {-# INLINE toStdShape #-}
 
-instance ToStdShape sh => ToStdShape (Rotate sh) where
+instance (ToStdShape sh) => ToStdShape (Rotate sh) where
   {-# SPECIALIZE instance ToStdShape (Rotate StdShape) #-}
   {-# SPECIALIZE instance ToStdShape (Rotate Sphere) #-}
   {-# SPECIALIZE instance ToStdShape (Rotate Plane) #-}
   toStdShape = Rotated . fmap toStdShape
   {-# INLINE toStdShape #-}
 
-instance ToStdShape sh => ToStdShape (ConstantMedium sh) where
+instance (ToStdShape sh) => ToStdShape (ConstantMedium sh) where
   {-# SPECIALIZE instance ToStdShape (ConstantMedium StdShape) #-}
   {-# SPECIALIZE instance ToStdShape (ConstantMedium Sphere) #-}
   {-# SPECIALIZE instance ToStdShape (ConstantMedium Plane) #-}

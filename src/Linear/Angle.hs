@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 
 -- | Opaque angle type and their interface, inspired by diagrams-lib
@@ -35,7 +34,7 @@ newtype Angle a = Angle a
   deriving (Applicative) via Co Angle
   deriving (Semigroup, Monoid) via Sum a
 
-factored :: Fractional a => a -> Iso' (Angle a) a
+factored :: (Fractional a) => a -> Iso' (Angle a) a
 {-# INLINE factored #-}
 {-# SPECIALIZE factored :: Double -> Iso' (Angle Double) Double #-}
 factored a = coerced . iso (* a) (/ a)
@@ -50,12 +49,12 @@ infixl 5 @@
 (@@) :: b -> AReview a b -> a
 (@@) = flip review
 
-deg :: Floating a => Iso' (Angle a) a
+deg :: (Floating a) => Iso' (Angle a) a
 {-# SPECIALIZE INLINE deg :: Iso' (Angle Double) Double #-}
 {-# INLINE deg #-}
 deg = factored (180 / pi)
 
-turn :: Floating a => Iso' (Angle a) a
+turn :: (Floating a) => Iso' (Angle a) a
 {-# SPECIALIZE INLINE turn :: Iso' (Angle Double) Double #-}
 {-# INLINE turn #-}
 turn = factored (1 / (2 * pi))
@@ -66,22 +65,22 @@ instance Distributive Angle where
   distribute = distributeRep
   {-# INLINE distribute #-}
 
-sinA :: Floating a => Angle a -> a
+sinA :: (Floating a) => Angle a -> a
 sinA = sin . coerce
 
-cosA :: Floating a => Angle a -> a
+cosA :: (Floating a) => Angle a -> a
 cosA = cos . coerce
 
-tanA :: Floating a => Angle a -> a
+tanA :: (Floating a) => Angle a -> a
 tanA = tan . coerce
 
-atanA :: Floating a => a -> Angle a
+atanA :: (Floating a) => a -> Angle a
 atanA = Angle . atan
 
-acosA :: Floating a => a -> Angle a
+acosA :: (Floating a) => a -> Angle a
 acosA = Angle . acos
 
-asinA :: Floating a => a -> Angle a
+asinA :: (Floating a) => a -> Angle a
 asinA = Angle . asin
 
 axisAngleA :: (Floating a, Epsilon a) => Dir V3 a -> Angle a -> Quaternion a

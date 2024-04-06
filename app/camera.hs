@@ -1,6 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -232,7 +231,7 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
         | mtd <- [Random, Stencil]
         ]
 
-mkImage :: RandomGen g => g -> Options -> WordImage
+mkImage :: (RandomGen g) => g -> Options -> WordImage
 mkImage g' opts@Options {..} =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio

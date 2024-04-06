@@ -1,6 +1,5 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -25,7 +24,7 @@ import Linear.V2 (V2)
 import Linear.V3 (V3)
 
 data SomeTexture where
-  MkSomeTexture :: Texture txt => txt -> SomeTexture
+  MkSomeTexture :: (Texture txt) => txt -> SomeTexture
 
 class Texture texture where
   -- | Maps texture and real coordinate to RGB colour
@@ -75,7 +74,7 @@ data TextureOffset txt = TextureOffset
   }
   deriving (Show, Eq, Ord, Generic, Generic1, Functor)
 
-instance Texture txt => Texture (TextureOffset txt) where
+instance (Texture txt) => Texture (TextureOffset txt) where
   colorAt TextureOffset {..} =
     colorAt texture . fmap (`mod'` 1.0) . (.+^ offset)
   {-# INLINE colorAt #-}

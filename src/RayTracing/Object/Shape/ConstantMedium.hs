@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -31,7 +30,7 @@ pattern ConstantMedium {density, boundary} <- ConstantMedium' (negate . recip ->
         , _boundary = obj
         }
 
-instance Hittable a => Hittable (ConstantMedium a) where
+instance (Hittable a) => Hittable (ConstantMedium a) where
   hitWithin ConstantMedium' {..} tmin tmax r = do
     rec1 <- hitWithin _boundary NegativeInfinity Infinity r
     rec2 <- hitWithin _boundary (rec1 ^. #hitTime + 1e-4) Infinity r

@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module RayTracing.Ray (Ray (..), rayAt, RayColor) where

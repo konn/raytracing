@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 
 module RayTracing.Object (
@@ -25,13 +24,13 @@ data Object shape material = Object
   }
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
 
-instance Hittable shape => Hittable (Object shape mat) where
+instance (Hittable shape) => Hittable (Object shape mat) where
   hitWithin = hitWithin . shape
   {-# INLINE hitWithin #-}
   boundingBox = boundingBox . shape
   {-# INLINE boundingBox #-}
 
-instance Material mat => Material (Object shape mat) where
+instance (Material mat) => Material (Object shape mat) where
   scatter = scatter . material
   {-# INLINE scatter #-}
   emitted = emitted . material

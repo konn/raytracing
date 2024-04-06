@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -114,11 +113,11 @@ buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
           !cmp = comparing $ view ax . lowerBound . fst
           !len = HMV.length objs
       if
-          | len <= 1 -> pure ()
-          | len == 2 -> OptSort.sort2ByOffset cmp objs 0
-          | len == 3 -> OptSort.sort3ByOffset cmp objs 0
-          | len == 4 -> OptSort.sort4ByOffset cmp objs 0
-          | otherwise -> Intro.sortBy cmp objs
+        | len <= 1 -> pure ()
+        | len == 2 -> OptSort.sort2ByOffset cmp objs 0
+        | len == 3 -> OptSort.sort3ByOffset cmp objs 0
+        | len == 4 -> OptSort.sort4ByOffset cmp objs 0
+        | otherwise -> Intro.sortBy cmp objs
       case len of
         _ | len <= bucketSize -> do
           bbObjs <- HV.unsafeFreeze objs
@@ -190,7 +189,7 @@ buildBVH' bins0 bucketSize = fmap (\p -> BVH (bvh# p)) . go
           let !lrb = lb <> rb
           pure $ P lrb (Branch# (size# l + size# r) lrb l r)
 
-boundingBox' :: Hittable obj => obj -> BoundingBox
+boundingBox' :: (Hittable obj) => obj -> BoundingBox
 boundingBox' = fromMaybe (error "BoundingBox not found!") . boundingBox
 
 nearestHit ::

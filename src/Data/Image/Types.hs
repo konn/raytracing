@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -19,7 +18,6 @@ module Data.Image.Types (
   correctGamma,
 ) where
 
-import Control.Applicative (Applicative (..))
 import Control.Arrow ((>>>))
 import Data.Massiv.Array
 import Data.Massiv.Array qualified as M
@@ -49,13 +47,13 @@ type DoubleImage = Image S RGB Double
 type WordImage = Image S RGB Word8
 
 fromDoubleImage ::
-  Functor (Color cs) =>
-  M.Source r (Pixel cs Double) =>
+  (Functor (Color cs)) =>
+  (M.Source r (Pixel cs Double)) =>
   M.Matrix r (Pixel cs Double) ->
   M.Matrix M.D (Pixel cs Word8)
 fromDoubleImage = M.map (fmap $ floor . (255.999 *))
 
-width, height :: Size r => Matrix r f -> Int
+width, height :: (Size r) => Matrix r f -> Int
 width = M.size >>> \case (Sz2 _ w) -> w
 height = M.size >>> \case (Sz2 h _) -> h
 
@@ -68,8 +66,8 @@ generateImage sz =
     . M.makeArray @M.D M.Par sz
 
 correctGamma ::
-  ColorModel cs Double =>
-  M.Source r (Pixel cs Double) =>
+  (ColorModel cs Double) =>
+  (M.Source r (Pixel cs Double)) =>
   M.Matrix r (Pixel cs Double) ->
   M.Matrix M.D (Pixel cs Double)
 correctGamma = M.map sqrt

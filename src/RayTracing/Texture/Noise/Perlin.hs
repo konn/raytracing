@@ -1,6 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoFieldSelectors #-}
@@ -14,7 +13,6 @@ module RayTracing.Texture.Noise.Perlin (
   turbulate,
 ) where
 
-import Control.Applicative (liftA2)
 import Control.Arrow ((>>>))
 import Control.Monad.Trans.State.Strict (State)
 import Control.Monad.Zip (munzip)
@@ -59,7 +57,7 @@ pointCount :: Int
 {-# INLINE pointCount #-}
 pointCount = 256
 
-randomPerlinSeed :: RandomGen g => State g PerlinSeed
+randomPerlinSeed :: (RandomGen g) => State g PerlinSeed
 {-# INLINE randomPerlinSeed #-}
 randomPerlinSeed = do
   pointSeeds <-

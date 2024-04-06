@@ -1,7 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -62,7 +61,7 @@ mkHitWithOutwardNormal origDir coord outNormal hitTime textureCoordinate =
    in Hit {..}
 
 class Hittable obj where
-  hitWithin :: RandomGen g => obj -> Double -> Double -> Ray -> MaybeT (State g) HitRecord
+  hitWithin :: (RandomGen g) => obj -> Double -> Double -> Ray -> MaybeT (State g) HitRecord
   boundingBox :: obj -> Maybe BoundingBox
 
 newtype FoldHittables t obj = Hittables {hittables :: t obj}
@@ -79,7 +78,7 @@ deriving via
     (Hittable obj) => Hittable (FMList obj)
 
 data SomeHittable where
-  MkSomeHittable :: Hittable obj => obj -> SomeHittable
+  MkSomeHittable :: (Hittable obj) => obj -> SomeHittable
 
 instance Hittable SomeHittable where
   hitWithin = \case (MkSomeHittable obj) -> hitWithin obj

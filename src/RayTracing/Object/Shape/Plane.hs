@@ -1,7 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -15,7 +14,6 @@ module RayTracing.Object.Shape.Plane (
   zxPlane,
 ) where
 
-import Control.Applicative (liftA2)
 import Control.Lens (both, (%~), (^.))
 import Control.Monad (guard)
 import Control.Monad.Trans.Maybe (MaybeT (..))

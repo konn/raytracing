@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module RayTracing.Camera (
@@ -11,7 +10,6 @@ module RayTracing.Camera (
   ThinLens (..),
 ) where
 
-import Control.Applicative (liftA2)
 import Control.Monad.Trans.State.Strict (State)
 import GHC.Generics (Generic)
 import Linear
@@ -69,13 +67,15 @@ mkCamera CameraConfig {..} =
       vertical = fdist * viewportHeight *^ unDir v
       lowerLeftCorner =
         cameraOrigin
-          .-^ horizontal ^/ 2.0
-          .-^ vertical ^/ 2.0
+          .-^ horizontal
+          ^/ 2.0
+          .-^ vertical
+          ^/ 2.0
           .-^ (fdist *| w)
       lensRadius = (/ 2) . aperture <$> thinLens
    in Camera {..}
 
-getRay :: RandomGen g => Camera -> Point V2 Double -> State g Ray
+getRay :: (RandomGen g) => Camera -> Point V2 Double -> State g Ray
 getRay Camera {..} (P (V2 s t)) = do
   offset <-
     maybe

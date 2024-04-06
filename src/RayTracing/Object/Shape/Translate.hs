@@ -1,7 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -31,7 +30,7 @@ data Translate a = Translate'
 
 {-# COMPLETE Translate #-}
 
-pattern Translate :: Hittable a => () => V3 Double -> a -> Translate a
+pattern Translate :: (Hittable a) => () => V3 Double -> a -> Translate a
 pattern Translate {displacement, original} <- Translate' displacement original _
   where
     Translate d t =
@@ -41,13 +40,13 @@ pattern Translate {displacement, original} <- Translate' displacement original _
         , tBBox = translatedBBox d t
         }
 
-translatedBBox :: Hittable a => V3 Double -> a -> Maybe BoundingBox
+translatedBBox :: (Hittable a) => V3 Double -> a -> Maybe BoundingBox
 translatedBBox disp =
   boundingBox
     >>> fmap
       (#lowerBound . _Point +~ disp >>> #upperBound . _Point +~ disp)
 
-instance Hittable a => Hittable (Translate a) where
+instance (Hittable a) => Hittable (Translate a) where
   {-# INLINE hitWithin #-}
   hitWithin = \case
     Translate' {..} ->

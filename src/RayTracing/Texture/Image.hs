@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -30,12 +29,12 @@ newtype ImageTexture' r = ImageTexture {image :: Image r RGB Double}
 
 type ImageTexture = ImageTexture' M.S
 
-loadImageTexture :: MonadIO m => FilePath -> m ImageTexture
+loadImageTexture :: (MonadIO m) => FilePath -> m ImageTexture
 loadImageTexture =
   fmap (ImageTexture . M.computeP . M.map (liftPixel unColorRGB))
     . readImageAuto @M.S @(C.SRGB 'C.Linear)
 
-instance M.Manifest r (Pixel RGB Double) => Texture (ImageTexture' r) where
+instance (M.Manifest r (Pixel RGB Double)) => Texture (ImageTexture' r) where
   {-# INLINE colorAt #-}
   colorAt ImageTexture {..} p =
     let P (V2 u v) = p <&> clamp (0, 1) & _y %~ (1 -)

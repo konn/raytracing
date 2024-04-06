@@ -1,7 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -10,7 +9,6 @@ module RayTracing.Object.Shape.Rotate (
   Rotate (Rotate, rotation, original),
 ) where
 
-import Control.Applicative (liftA2)
 import Control.Arrow ((>>>))
 import Control.Lens (Traversable1 (..), (%~), (^.))
 import Control.Monad.Zip (munzip)
@@ -37,12 +35,12 @@ data Rotate a = Rotate'
 
 {-# COMPLETE Rotate :: Rotate #-}
 
-pattern Rotate :: Hittable a => () => Quaternion Double -> a -> Rotate a
+pattern Rotate :: (Hittable a) => () => Quaternion Double -> a -> Rotate a
 pattern Rotate {rotation, original} <- Rotate' rotation _ original _
   where
     Rotate q o = Rotate' q (conjugate q) o (rotatedBBox q o)
 
-rotatedBBox :: Hittable a => Quaternion Double -> a -> Maybe BoundingBox
+rotatedBBox :: (Hittable a) => Quaternion Double -> a -> Maybe BoundingBox
 {-# INLINE rotatedBBox #-}
 rotatedBBox rot =
   boundingBox >>> fmap \MkBoundingBox {..} ->
@@ -58,7 +56,7 @@ rotatedBBox rot =
           , lowerBound = coerce mins
           }
 
-instance Hittable a => Hittable (Rotate a) where
+instance (Hittable a) => Hittable (Rotate a) where
   {-# INLINE hitWithin #-}
   hitWithin Rotate' {..} tmin tmax ray = do
     let !relativeRay =
