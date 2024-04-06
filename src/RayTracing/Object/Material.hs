@@ -36,6 +36,9 @@ import Data.Generics.Labels ()
 import Data.Image.Types
 import Data.Maybe (fromMaybe)
 import Data.Ord (clamp)
+import Data.Vector.Generic qualified as G
+import Data.Vector.Generic.Mutable qualified as MG
+import Data.Vector.Unboxed qualified as U
 import GHC.Generics (Generic, Generic1)
 import Graphics.ColorModel
 import Linear
@@ -50,7 +53,15 @@ import System.Random.Utils (randomPointOnUnitHemisphere, randomPointOnUnitSphere
 
 newtype Attenuation cs a = Attenuation {getAttenuation :: Color cs a}
   deriving (Generic)
-  deriving newtype (Num, Fractional, Unbox)
+  deriving newtype (Num, Fractional, U.Unbox)
+
+newtype instance U.Vector (Attenuation cs a) = V_Attenuation (U.Vector (Color cs a))
+
+newtype instance U.MVector s (Attenuation cs a) = MV_Attenuation (U.MVector s (Color cs a))
+
+deriving newtype instance (ColorModel cs a) => G.Vector U.Vector (Attenuation cs a)
+
+deriving newtype instance (ColorModel cs a) => MG.MVector U.MVector (Attenuation cs a)
 
 deriving newtype instance
   (cs ~ RGB, e ~ Double) => Texture (Attenuation cs e)
@@ -74,10 +85,6 @@ deriving newtype instance (Additive (Color cs)) => Additive (Attenuation cs)
 pattern MkAttn :: a -> a -> a -> Attenuation RGB a
 pattern MkAttn {redRatio, greenRatio, blueRatio} =
   Attenuation (ColorRGB redRatio greenRatio blueRatio)
-
-newtype instance U.Vector (Attenuation cs a) = V_Attenuation (U.Vector (Pixel cs a))
-
-newtype instance U.MVector s (Attenuation cs a) = MV_Attenuation (U.MVector s (Pixel cs a))
 
 infixl 7 .*
 
