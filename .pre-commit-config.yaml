@@ -3,11 +3,15 @@
 repos:
 - repo: local
   hooks:
-  - id: pre-commit-run-hpack
-    name: Generates .cabal files with hpack
+  - id: pre-commit-run-cabal-gild
+    name: Formats cabal files with cabal-gild
     always_run: true
     verbose: true
     stages: [commit]
     language: system
     pass_filenames: false
-    entry: hpack
+    entry: >
+      bash -c
+      "find . -name '*.cabal' -or -name 'cabal.*' 
+      -not -path './dist-newstyle/*' | while read -r FILE; do cabal-gild --io=\"${FILE}\"; done
+      "

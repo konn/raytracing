@@ -1,626 +1,232 @@
-cabal-version: 1.12
-
--- This file has been generated from package.yaml by hpack version 0.35.0.
---
--- see: https://github.com/sol/hpack
-
-name:           raytracing
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/raytracing#readme>
-homepage:       https://github.com/githubuser/raytracing#readme
-bug-reports:    https://github.com/githubuser/raytracing/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2022 Author name here
-license:        BSD3
-license-file:   LICENSE
-build-type:     Simple
-extra-source-files:
-    README.md
-    CHANGELOG.md
+cabal-version: 3.4
+name: raytracing
+version: 0.1.0.0
+description: Please see the README on GitHub at <https://github.com/githubuser/raytracing#readme>
+homepage: https://github.com/githubuser/raytracing#readme
+bug-reports: https://github.com/githubuser/raytracing/issues
+author: Author name here
+maintainer: example@example.com
+copyright: 2022 Author name here
+license: BSD-3-Clause
+license-file: LICENSE
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
 
 source-repository head
   type: git
   location: https://github.com/githubuser/raytracing
 
-library
-  exposed-modules:
-      Data.Avg
-      Data.Image.Antialiasing
-      Data.Image.Types
-      Data.Vector.Shuffle
-      Linear.Angle
-      Linear.Direction
-      Numeric.Utils
-      RayTracing.BoundingBox
-      RayTracing.BVH
-      RayTracing.Camera
-      RayTracing.Object
-      RayTracing.Object.Material
-      RayTracing.Object.Shape
-      RayTracing.Object.Shape.Box
-      RayTracing.Object.Shape.Class
-      RayTracing.Object.Shape.ConstantMedium
-      RayTracing.Object.Shape.Plane
-      RayTracing.Object.Shape.Rotate
-      RayTracing.Object.Shape.Sphere
-      RayTracing.Object.Shape.StdShape
-      RayTracing.Object.Shape.Translate
-      RayTracing.Ray
-      RayTracing.Scene
-      RayTracing.Texture
-      RayTracing.Texture.Image
-      RayTracing.Texture.Noise.Perlin
-      System.Random.Orphans
-      System.Random.Stateful.STUnbox
-      System.Random.Utils
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      src
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+common defaults
+  default-language: GHC2021
+  autogen-modules: Paths_raytracing
+  other-modules: Paths_raytracing
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+  build-depends: base >=4.7 && <5
+
+common exes
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    lens,
+    linear,
+    massiv,
+    massiv-io,
+    raytracing,
+    rio,
+
+common rendering-apps
+  import: exes
+  build-depends:
+    bytestring,
+    bytestring-trie,
+    generic-lens,
+    optparse-applicative,
+    random,
+
+library
+  import: defaults
+  -- cabal-gild: discover src
+  exposed-modules:
+    Data.Avg
+    Data.Image.Antialiasing
+    Data.Image.Types
+    Data.Vector.Shuffle
+    Linear.Angle
+    Linear.Direction
+    Numeric.Utils
+    RayTracing.BVH
+    RayTracing.BoundingBox
+    RayTracing.Camera
+    RayTracing.Object
+    RayTracing.Object.Material
+    RayTracing.Object.Shape
+    RayTracing.Object.Shape.Box
+    RayTracing.Object.Shape.Class
+    RayTracing.Object.Shape.ConstantMedium
+    RayTracing.Object.Shape.Plane
+    RayTracing.Object.Shape.Rotate
+    RayTracing.Object.Shape.Sphere
+    RayTracing.Object.Shape.StdShape
+    RayTracing.Object.Shape.Translate
+    RayTracing.Ray
+    RayTracing.Scene
+    RayTracing.Texture
+    RayTracing.Texture.Image
+    RayTracing.Texture.Noise.Perlin
+    System.Random.Orphans
+    System.Random.Stateful.STUnbox
+    System.Random.Utils
+
+  hs-source-dirs: src
+  build-depends:
+    adjunctions,
+    base >=4.7 && <5,
+    distributive,
+    fmlist,
+    foldl,
+    generic-lens,
+    hybrid-vectors,
+    lens,
+    linear,
+    massiv,
+    massiv-io,
+    random,
+    rio,
+    semigroupoids,
+    splitmix,
+    strict,
+    transformers,
+    vector,
+    vector-algorithms,
+    vector-th-unbox,
 
 executable blue-to-white
+  import: defaults, exes
   main-is: blue-to-white.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
-  build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+  hs-source-dirs: app
 
 executable camera
+  import: defaults, rendering-apps
   main-is: camera.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  hs-source-dirs: app
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , scientific
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    integer-roots,
+    scientific,
+    transformers,
 
 executable diffuse
+  import: defaults, rendering-apps
   main-is: diffuse.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
-  build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+  hs-source-dirs: app
 
 executable gradient-with-simple-sphere
+  import: defaults, exes
   main-is: gradient-with-simple-sphere.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  hs-source-dirs: app
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    random,
+    transformers,
 
 executable metal-spheres
+  import: defaults, rendering-apps
   main-is: metal-spheres.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
-  build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+  hs-source-dirs: app
+  build-depends: integer-roots
 
 executable metals-and-glasses
+  import: defaults, rendering-apps
   main-is: metals-and-glasses.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
-  build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+  hs-source-dirs: app
+  build-depends: integer-roots
 
 executable next-week
+  import: defaults, rendering-apps
   main-is: Main.hs
-  other-modules:
-      Options
-      Paths_raytracing
-  hs-source-dirs:
-      app/next-week
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  other-modules: Options
+  hs-source-dirs: app/next-week
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , scientific
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    barbies,
+    fmlist,
+    higgledy,
+    integer-roots,
+    mmorph,
+    named,
+    scientific,
+    strict,
+    transformers,
 
 executable one-weekend-finale
+  import: defaults, rendering-apps
   main-is: one-weekend-finale.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  hs-source-dirs: app
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , scientific
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    fmlist,
+    integer-roots,
+    scientific,
+    strict,
+    transformers,
 
 executable spheres
+  import: defaults, exes
   main-is: spheres.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  hs-source-dirs: app
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    random,
+    transformers,
 
 executable spheres-antialias
+  import: defaults, exes
   main-is: spheres-antialias.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -O2 -with-rtsopts=-N
+  hs-source-dirs: app
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    generic-lens,
+    random,
+    transformers,
 
 test-suite raytracing-test
+  import: defaults
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      RayTracing.BoundingBoxSpec
-      Paths_raytracing
-  hs-source-dirs:
-      test
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  other-modules: RayTracing.BoundingBoxSpec
+  hs-source-dirs: test
   build-tool-depends:
-      tasty-discover:tasty-discover
+    tasty-discover:tasty-discover
+
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , tasty
-    , tasty-inspection-testing
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    raytracing,
+    tasty,
+    tasty-inspection-testing,
 
 benchmark raytracing-bench
+  import: defaults
   type: exitcode-stdio-1.0
   main-is: bench.hs
-  other-modules:
-      Paths_raytracing
-  hs-source-dirs:
-      bench
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N6 -A32m -T" -O2
-  build-tool-depends:
-      tasty-discover:tasty-discover
+  hs-source-dirs: bench
+  build-tool-depends: tasty-discover:tasty-discover
   build-depends:
-      adjunctions
-    , barbies
-    , base >=4.7 && <5
-    , bytestring
-    , bytestring-trie
-    , distributive
-    , dlist
-    , fmlist
-    , foldl
-    , generic-lens
-    , higgledy
-    , hybrid-vectors
-    , integer-roots
-    , lens
-    , linear
-    , massiv
-    , massiv-io
-    , mmorph
-    , named
-    , optparse-applicative
-    , profunctors
-    , random
-    , raytracing
-    , rio
-    , rio-orphans
-    , semigroupoids
-    , semigroups
-    , splitmix
-    , strict
-    , tasty
-    , tasty-bench
-    , transformers
-    , vector
-    , vector-algorithms
-    , vector-th-unbox
-  default-language: Haskell2010
+    integer-roots,
+    lens,
+    linear,
+    massiv,
+    massiv-io,
+    random,
+    raytracing,
+    tasty,
+    tasty-bench,
