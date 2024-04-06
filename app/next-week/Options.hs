@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -110,7 +109,7 @@ sceneOptionsP scene defs =
       (defs scene)
       (optionDescription scene)
 
-setDefault :: Show a => Maybe a -> OptionP a -> Opt.Parser a
+setDefault :: (Show a) => Maybe a -> OptionP a -> Opt.Parser a
 setDefault Nothing (RawP p) = p
 setDefault Nothing (Option' f reader desc m) =
   f <$> Opt.option reader (m <> Opt.help desc)

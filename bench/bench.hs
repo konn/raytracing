@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main (main) where
@@ -76,7 +75,7 @@ theGen = mkStdGen 42
 samplesPerPixel :: Int
 samplesPerPixel = 64
 
-mkMetalSpheres :: RandomGen g => Int -> g -> Antialiasing -> WordImage
+mkMetalSpheres :: (RandomGen g) => Int -> g -> Antialiasing -> WordImage
 {-# INLINE mkMetalSpheres #-}
 mkMetalSpheres = mkImage metalSphereScene
 
@@ -122,7 +121,7 @@ p3 (x, y, z) = P $ V3 x y z
 data CornellMode = Solid | Smoke
   deriving (Show, Eq, Ord, Generic)
 
-mkCornellBox :: RandomGen g => CornellMode -> Int -> g -> Antialiasing -> WordImage
+mkCornellBox :: (RandomGen g) => CornellMode -> Int -> g -> Antialiasing -> WordImage
 {-# INLINE mkCornellBox #-}
 mkCornellBox = mkImage . cornellBoxScene
 
@@ -184,7 +183,7 @@ cornellBoxScene mode =
           ]
    in Scene {objects, background = const 0}
 
-mkImage :: RandomGen g => Scene -> Int -> g -> Antialiasing -> WordImage
+mkImage :: (RandomGen g) => Scene -> Int -> g -> Antialiasing -> WordImage
 mkImage scene imageWidth g0 antialiasing =
   let imageHeight =
         floor @Double $ fromIntegral imageWidth / (16.0 / 9.0)

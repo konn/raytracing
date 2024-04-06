@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -35,7 +34,7 @@ samplesPerPixel = 100
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig
 
-mkImage :: RandomGen g => g -> WordImage
+mkImage :: (RandomGen g) => g -> WordImage
 mkImage g =
   M.computeP
     $ fromDoubleImage
@@ -53,7 +52,7 @@ mkImage g =
     $ M.computeP @M.U
     $ M.uniformRangeArray g (0.0, 0.999) M.Par (Sz3 imageHeight imageWidth samplesPerPixel)
 
-colorRay :: Hittable obj => obj -> RayColor
+colorRay :: (Hittable obj) => obj -> RayColor
 colorRay obj r@Ray {..}
   | Just Hit {..} <- flip evalState (mkStdGen 42) $ runMaybeT $ hitWithin obj 1e-3 Infinity r =
       let n = unDir normal

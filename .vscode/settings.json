@@ -3,7 +3,7 @@
     "commands": [
       {
         "cmd": "bash -c \"find . -name '*.cabal' -or -name 'cabal.*' -not -path './dist-newstyle/*' | while read -r FILE; do cabal-gild --io=\"\\${FILE}\"; done\"",
-        "match": "package.yaml$",
+        "match": "\\.l?hs$",
         "isAsync": true
       }
     ]

@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main (main) where

@@ -1,7 +1,6 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -254,7 +253,7 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
         | mtd <- [Random, Stencil]
         ]
 
-mkImage :: RandomGen g => g -> Options -> Scene -> WordImage
+mkImage :: (RandomGen g) => g -> Options -> Scene -> WordImage
 mkImage g0 Options {..} scene =
   let imageHeight =
         floor $ fromIntegral imageWidth / aspectRatio
@@ -283,7 +282,7 @@ mkImage g0 Options {..} scene =
 p2 :: (a, a) -> Point V2 a
 p2 = P . uncurry V2
 
-mkScene :: forall g. RandomGen g => Options -> State g Scene
+mkScene :: forall g. (RandomGen g) => Options -> State g Scene
 mkScene Options {} = do
   let ground = Sphere {center = p3 (0, -1000, 0), radius = 1000}
       groundMaterial =

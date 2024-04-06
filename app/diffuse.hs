@@ -1,6 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -133,7 +132,7 @@ parseDiffusion =
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig
 
-mkImage :: RandomGen g => g -> Options -> WordImage
+mkImage :: (RandomGen g) => g -> Options -> WordImage
 mkImage g0 opts@Options {..} =
   let imageHeight =
         floor $

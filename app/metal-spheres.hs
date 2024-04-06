@@ -1,6 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -140,7 +139,7 @@ parseAntialising = flip (Trie.lookupBy go) dic . BS.pack . map C.toLower
 aCamera :: Camera
 aCamera = mkCamera defaultCameraConfig
 
-mkImage :: RandomGen g => g -> Options -> WordImage
+mkImage :: (RandomGen g) => g -> Options -> WordImage
 mkImage g0 opts@Options {..} =
   let imageHeight =
         floor $

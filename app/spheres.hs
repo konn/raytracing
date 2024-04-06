@@ -1,4 +1,3 @@
-{-# LANGUAGE GHC2021 #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main (main) where
@@ -34,7 +33,7 @@ anImage = generateImage (Sz2 imageHeight imageWidth) $ \(j :. i) ->
           }
    in colorRay world r
 
-colorRay :: Hittable obj => obj -> RayColor
+colorRay :: (Hittable obj) => obj -> RayColor
 colorRay obj r@Ray {..}
   | Just Hit {..} <-
       flip evalState (mkStdGen 42) $ runMaybeT $ hitWithin obj 1e-3 Infinity r =
