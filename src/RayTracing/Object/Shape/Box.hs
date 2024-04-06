@@ -1,4 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -8,16 +9,18 @@ module RayTracing.Object.Shape.Box (
 
 import Control.Lens ((^.))
 import Control.Monad.Zip (mzip)
+import Data.Array.Accelerate (Elt)
+import Data.Array.Accelerate.Linear.Affine
 import Data.Generics.Labels ()
 import GHC.Generics (Generic)
 import Linear
-import Linear.Affine
 import RayTracing.BoundingBox
 import RayTracing.Object.Shape.Class
 import RayTracing.Object.Shape.Plane
 
 data Box = Box {start, end :: {-# UNPACK #-} !(Point V3 Double)}
   deriving (Show, Eq, Ord, Generic)
+  deriving anyclass (Elt)
 
 instance Hittable Box where
   hitWithin Box {..} =

@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -9,6 +11,7 @@ module RayTracing.Object.Shape.ConstantMedium (
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
+import Data.Array.Accelerate (Elt)
 import Data.Generics.Labels ()
 import GHC.Generics
 import Linear (norm)
@@ -20,6 +23,7 @@ import System.Random.Stateful (StateGenM (..), randomM)
 
 data ConstantMedium a = ConstantMedium' {negInvDensity :: !Double, _boundary :: !a}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable, Traversable)
+  deriving anyclass (Elt)
 
 pattern ConstantMedium :: Double -> a -> ConstantMedium a
 pattern ConstantMedium {density, boundary} <- ConstantMedium' (negate . recip -> !density) boundary

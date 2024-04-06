@@ -1,4 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedLabels #-}
@@ -18,6 +19,8 @@ import Control.Lens (both, (%~), (^.))
 import Control.Monad (guard)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Control.Monad.Zip (munzip)
+import Data.Array.Accelerate (Elt)
+import Data.Array.Accelerate.Linear.Affine
 import Data.Function ((&))
 import Data.Generics.Labels ()
 import GHC.Generics (Generic)
@@ -34,6 +37,7 @@ data PlaneConfig = PlaneConfig
   , planeBoundary :: {-# UNPACK #-} !(V2 (Double, Double))
   }
   deriving (Show, Eq, Ord, Generic)
+  deriving anyclass (Elt)
 
 data Plane = Plane
   { planeNormal :: {-# UNPACK #-} !(Dir V3 Double)
@@ -43,6 +47,7 @@ data Plane = Plane
   , planeBoundingBox :: {-# UNPACK #-} !BoundingBox
   }
   deriving (Show, Eq, Ord, Generic)
+  deriving anyclass (Elt)
 
 planeAxes :: Dir V3 Double -> V2 (V3 Double)
 {-# INLINE planeAxes #-}

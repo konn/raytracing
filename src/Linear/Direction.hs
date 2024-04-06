@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -26,6 +27,7 @@ module Linear.Direction (
 ) where
 
 import Control.Lens (coerced, (%~))
+import Data.Array.Accelerate (Elt)
 import Data.Coerce (coerce)
 import Data.Vector.Generic qualified as G
 import Data.Vector.Generic.Mutable qualified as MG
@@ -36,6 +38,7 @@ import Linear
 newtype Dir v a = Dir {_unDir :: v a}
   deriving (Show, Eq, Ord, Generic, Generic1, Functor, Foldable)
   deriving (U.Unbox) via v a
+  deriving newtype (Elt)
 
 newtype instance U.Vector (Dir v a) = V_Dir (U.Vector (v a))
 

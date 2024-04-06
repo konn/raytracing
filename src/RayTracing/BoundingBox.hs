@@ -15,6 +15,8 @@ module RayTracing.BoundingBox (
 
 import Control.Lens ((^.))
 import Control.Monad (guard)
+import Data.Array.Accelerate (Elt)
+import Data.Array.Accelerate.Linear.Affine ()
 import Data.Foldable (foldlM)
 import Data.Maybe (isJust)
 import Data.Strict qualified as St
@@ -32,6 +34,7 @@ import RayTracing.Ray (Ray (..))
 data BoundingBox = MkBoundingBox {lowerBound, upperBound :: {-# UNPACK #-} !(Point V3 Double)}
   deriving (Show, Eq, Ord, Generic)
   deriving (U.Unbox) via (M23 Double)
+  deriving anyclass (Elt)
 
 deriving anyclass instance U.IsoUnbox BoundingBox (M23 Double)
 
